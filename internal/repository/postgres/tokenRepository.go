@@ -1,16 +1,15 @@
 package postgres
 
 import (
-	"database/sql"
-
 	"github.com/jakobsym/aura/internal/repository"
 )
 
 type postgresTokenRepo struct {
-	db *sql.DB
+	//db *sql.DB
+	db string
 }
 
-func NewPostgresTokenRepo(db *sql.DB) repository.TokenRepo {
+func NewPostgresTokenRepo(db string /*db *sql.DB*/) repository.TokenRepo {
 	return &postgresTokenRepo{db: db}
 }
 

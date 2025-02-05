@@ -1,11 +1,29 @@
 package routes
 
-import "github.com/jakobsym/aura/internal/handler"
+import (
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jakobsym/aura/internal/handler"
+)
 
 type Router struct {
-	hdlr *handler.TokenHandler
+	tokenHandler *handler.TokenHandler
+	// add other handlers here (I.E: walletHandler)
 }
 
-func NewRouter(h *handler.TokenHandler) *Router {
-	return &Router{hdlr: h}
+func NewRouter(th *handler.TokenHandler) *Router {
+	return &Router{tokenHandler: th}
+}
+
+func (r *Router) LoadRoutes() *chi.Mux {
+	router := chi.NewRouter()
+	router.Use(middleware.Logger)
+	router.Route("/v0/token", r.tokenRoutes)
+
+	return router
+}
+
+func (r *Router) tokenRoutes(router chi.Router) {
+	router.Post("/", r.tokenHandler.CreateToken)
+	// rest of token handler functions
 }
