@@ -10,7 +10,8 @@ import (
 )
 
 func main() {
-	db := "todo"
+	db := postgres.PostgresConnectionPool()
+	defer db.Close()
 
 	// token
 	repo := postgres.NewPostgresTokenRepo(db)
@@ -21,5 +22,4 @@ func main() {
 	if err := http.ListenAndServe(":3000", router.LoadRoutes()); err != nil {
 		panic(err)
 	}
-
 }

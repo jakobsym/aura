@@ -19,3 +19,7 @@ func NewTokenHandler(s *service.TokenService) *TokenHandler {
 func (th *TokenHandler) CreateToken(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("CreateToken World")
 }
+
+func (th *TokenHandler) GetTokenDetails(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("GetTokenDetails World")
+}
