@@ -39,4 +39,4 @@ func PostgresConnectionPool() *pgxpool.Pool {
 	return dbpool
 }
 
-// PSQL Queries for a Token table
+// PSQL Queries for a Token table that implement the repository

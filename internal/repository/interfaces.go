@@ -9,3 +9,7 @@ type TokenRepo interface {
 type WalletRepo interface {
 	// methods
 }
+
+type SolanaTokenRepo interface {
+	// methods
+}

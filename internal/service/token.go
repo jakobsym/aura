@@ -3,11 +3,12 @@ package service
 import "github.com/jakobsym/aura/internal/repository"
 
 type TokenService struct {
-	repo repository.TokenRepo
+	psqlRepo   repository.TokenRepo
+	solanaRepo repository.SolanaTokenRepo
 }
 
-func NewTokenService(r repository.TokenRepo) *TokenService {
-	return &TokenService{repo: r}
+func NewTokenService(r repository.TokenRepo, sr repository.SolanaTokenRepo) *TokenService {
+	return &TokenService{psqlRepo: r, solanaRepo: sr}
 }
 
-// call methods from TokenRepo interface
+// call methods from TokenRepo && SolanaTokenRepo interface
