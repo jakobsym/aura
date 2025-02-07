@@ -25,6 +25,5 @@ func (r *Router) LoadRoutes() *chi.Mux {
 
 func (r *Router) tokenRoutes(router chi.Router) {
 	router.Get("/{token_address}", r.tokenHandler.GetTokenDetails)
-	router.Post("/{token_address}", r.tokenHandler.CreateToken)
 	// rest of token handler functions
 }

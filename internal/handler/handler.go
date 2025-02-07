@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/jakobsym/aura/internal/service"
@@ -16,10 +15,7 @@ func NewTokenHandler(s *service.TokenService) *TokenHandler {
 }
 
 // req/res related methods
-func (th *TokenHandler) CreateToken(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("CreateToken World")
-}
-
 func (th *TokenHandler) GetTokenDetails(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("GetTokenDetails World")
+	// Call a function within 'service' package, and this function is responsible
+	// for building a TokenResponse
 }

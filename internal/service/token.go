@@ -1,6 +1,11 @@
 package service
 
-import "github.com/jakobsym/aura/internal/repository"
+import (
+	"context"
+
+	"github.com/jakobsym/aura/internal/domain"
+	"github.com/jakobsym/aura/internal/repository"
+)
 
 type TokenService struct {
 	psqlRepo   repository.TokenRepo
@@ -12,3 +17,10 @@ func NewTokenService(r repository.TokenRepo, sr repository.SolanaTokenRepo) *Tok
 }
 
 // call methods from TokenRepo && SolanaTokenRepo interface
+func (ts *TokenService) GetTokenPrice(ctx context.Context, tokenAddress string) (float64, error) {
+	return ts.solanaRepo.GetTokenPrice(ctx, tokenAddress)
+}
+
+func (ts *TokenService) GetTokenData(ctx context.Context, tokenAddress string) (*domain.TokenResponse, error) {
+	return nil, nil
+}
