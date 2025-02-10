@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -19,9 +19,15 @@ func NewTokenHandler(s *service.TokenService) *TokenHandler {
 // req/res related methods
 func (th *TokenHandler) GetTokenDetails(w http.ResponseWriter, r *http.Request) {
 	tokenAddress := chi.URLParam(r, "token_address")
-	res := th.s.GetTokenData(r.Context(), tokenAddress)
-	fmt.Println(res)
-	// Call a function within 'service' package, and this function is responsible
-	// for building a TokenResponse
-	// encode the TokenResponse into JSON which gets sent as response
+	if tokenAddress == "" {
+		http.Error(w, "must provide valid token address", http.StatusInternalServerError)
+		return
+	}
+	res, err := th.s.GetTokenData(r.Context(), tokenAddress)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(res)
 }

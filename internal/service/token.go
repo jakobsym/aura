@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jakobsym/aura/internal/repository"
 )
@@ -20,11 +21,12 @@ func (ts *TokenService) GetTokenPrice(ctx context.Context, tokenAddress string) 
 	return ts.solanaRepo.GetTokenPrice(ctx, tokenAddress)
 }
 
-/*
-func (ts *TokenService) GetTokenData(ctx context.Context, tokenAddress string) (*domain.TokenResponse, error) {
-
-}
-*/
-func (ts *TokenService) GetTokenData(ctx context.Context, tokenAddress string) string {
-	return "Hello world"
+// This method will build a token which gets sent to the handler
+// Call rest of methods (using goroutines)
+func (ts *TokenService) GetTokenData(ctx context.Context, tokenAddress string) ([]string, error) {
+	res, err := ts.solanaRepo.GetTokenNameAndSymbol(ctx, tokenAddress)
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving token metadata")
+	}
+	return res, nil
 }
