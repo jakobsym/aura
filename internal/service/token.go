@@ -27,7 +27,7 @@ func (ts *TokenService) GetTokenPrice(ctx context.Context, tokenAddress string) 
 func (ts *TokenService) GetTokenData(ctx context.Context, tokenAddress string) (time.Time, error) {
 	res, err := ts.solanaRepo.GetTokenAge(ctx, tokenAddress)
 	if err != nil {
-		return time.Now(), fmt.Errorf("error retrieving token metadata")
+		return time.Time{}, fmt.Errorf("error retrieving token metadata")
 	}
 	return res, nil
 	/*

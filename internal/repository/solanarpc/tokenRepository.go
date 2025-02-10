@@ -79,11 +79,11 @@ func (sr *solanaTokenRepo) GetTokenAge(ctx context.Context, tokenAddress string)
 	}
 	mdAddr, _, err := solanago.FindProgramAddress(seeds, token_metadata.ProgramID)
 	if err != nil {
-		return time.Now(), fmt.Errorf("unable to find metadata address: %w", err)
+		return time.Time{}, fmt.Errorf("unable to find metadata address: %w", err)
 	}
-	sig, err := sr.rpcClient.GetSignaturesForAddress(ctx, mdAddr) // Returns all sigs, where last element is first signautre meaning token creation event
+	sig, err := sr.rpcClient.GetSignaturesForAddress(ctx, mdAddr)
 	if err != nil {
-		return time.Now(), fmt.Errorf("unable to find account info: %w", err)
+		return time.Time{}, fmt.Errorf("unable to find account info: %w", err)
 	}
 	time := sig[len(sig)-1].BlockTime.Time().UTC()
 	return time, nil
