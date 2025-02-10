@@ -38,7 +38,6 @@ func (sr *solanaTokenRepo) GetTokenFDV(ctx context.Context, price float64, suppl
 	return 0, nil
 }
 
-// TODO:  Need to find the correct metaplex methods to call
 func (sr *solanaTokenRepo) GetTokenNameAndSymbol(ctx context.Context, tokenAddress string) ([]string, error) {
 	mint := solanago.MustPublicKeyFromBase58(tokenAddress)
 
@@ -69,6 +68,23 @@ func (sr *solanaTokenRepo) GetTokenNameAndSymbol(ctx context.Context, tokenAddre
 	return []string{name, symbol}, nil
 }
 
+// TODO: Returning time.Now() probably not best for an error
 func (sr *solanaTokenRepo) GetTokenAge(ctx context.Context, tokenAddress string) (time.Time, error) {
-	return time.Now(), nil
+	mint := solanago.MustPublicKeyFromBase58(tokenAddress)
+
+	seeds := [][]byte{
+		[]byte("metadata"),
+		token_metadata.ProgramID.Bytes(),
+		mint.Bytes(),
+	}
+	mdAddr, _, err := solanago.FindProgramAddress(seeds, token_metadata.ProgramID)
+	if err != nil {
+		return time.Now(), fmt.Errorf("unable to find metadata address: %w", err)
+	}
+	sig, err := sr.rpcClient.GetSignaturesForAddress(ctx, mdAddr) // Returns all sigs, where last element is first signautre meaning token creation event
+	if err != nil {
+		return time.Now(), fmt.Errorf("unable to find account info: %w", err)
+	}
+	time := sig[len(sig)-1].BlockTime.Time().UTC()
+	return time, nil
 }
