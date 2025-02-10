@@ -18,8 +18,8 @@ type WalletRepo interface {
 type SolanaTokenRepo interface {
 	GetTokenAge(ctx context.Context, tokenAddress string) (time.Time, error)          // RPC
 	GetTokenNameAndSymbol(ctx context.Context, tokenAddress string) ([]string, error) // RPC
-	GetTokenSupply(ctx context.Context, tokenAddress string) (uint64, error)          // RPC
+	GetTokenSupply(ctx context.Context, tokenAddress string) (float64, error)         // RPC
 	GetTokenPrice(ctx context.Context, tokenAddress string) (float64, error)          // Jupiter
-	GetTokenFDV(ctx context.Context, price float64, supply uint64) (float64, error)
+	GetTokenFDV(ctx context.Context, price float64, supply float64) float64
 	//GetTokenHolders(ctx context.Context, tokenAddress string) (uint64, error) // Helius
 }
