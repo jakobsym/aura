@@ -15,7 +15,7 @@ type TokenResponse struct {
 	Name      string    `json:"name"`
 	Symbol    string    `json:"symbol"`
 	CreatedAt time.Time `json:"created_at"`
-	Supply    uint64    `json:"supply"`
+	Supply    float64   `json:"supply"`
 	Price     float64   `json:"price"`
 	FDV       float64   `json:"fdv"`
 	//Metadata  *TokenMetadata `json:"metadata,omitempty"`
