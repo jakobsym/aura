@@ -18,5 +18,6 @@ type TokenResponse struct {
 	Supply    float64   `json:"supply"`
 	Price     float64   `json:"price"`
 	FDV       float64   `json:"fdv"`
+	Socials   string    `json:"socials,omitempty"`
 	//Metadata  *TokenMetadata `json:"metadata,omitempty"`
 }

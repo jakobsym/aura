@@ -41,7 +41,7 @@ func (ts *TokenService) GetTokenData(ctx context.Context, tokenAddress string) (
 		recieved  int
 		fdv       float64
 	)
-
+	socials := fmt.Sprintf("https://x.com/search?q=%s", tokenAddress)
 	supplyCh := make(chan struct {
 		supply float64
 		err    error
@@ -133,6 +133,7 @@ func (ts *TokenService) GetTokenData(ctx context.Context, tokenAddress string) (
 		Supply:    supply.supply,
 		Price:     price.price,
 		FDV:       fdv,
+		Socials:   socials,
 	}
 
 	return token, nil
