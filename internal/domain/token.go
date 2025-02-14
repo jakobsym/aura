@@ -21,3 +21,5 @@ type TokenResponse struct {
 	Socials   string    `json:"socials,omitempty"`
 	//Metadata  *TokenMetadata `json:"metadata,omitempty"`
 }
+
+type TransactionResponse struct{}

@@ -23,3 +23,8 @@ type SolanaTokenRepo interface {
 	GetTokenFDV(ctx context.Context, price float64, supply float64) float64
 	//GetTokenHolders(ctx context.Context, tokenAddress string) (uint64, error) // Helius
 }
+
+// Websocket based RPC methods
+type SolanaAccountRepo interface {
+	AccountSubscribe(ctx context.Context, walletAddress string) (interface{}, error)
+}
