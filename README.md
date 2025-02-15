@@ -1,7 +1,4 @@
 # aura Architecture
-
-This project implements a real-time Solana transaction monitoring system with the following key components:
-
 ```mermaid
 flowchart TD
     subgraph UI[Frontend]
@@ -26,16 +23,14 @@ flowchart TD
         BC_WS[Blockchain WebSocket]
     end
 
-    %% Bi-directional Flows
-    WEB  |HTTP Req/Res| API
-    WS_CLIENT  |WebSocket Messages| WS
-    API  DB
-    RPC --> |Query Data| API
+    WEB <--> API
+    WS_CLIENT <--> WS
+    API <--> DB
+    RPC --> API
     WS --> MONITOR
-    MONITOR  BC_WS
+    MONITOR <--> BC_WS
     MONITOR --> DB
 
-    %% Modern, softer color palette
     classDef frontend fill:#7CB9E8,stroke:#4682B4,stroke-width:2px,color:white
     classDef backend fill:#98FB98,stroke:#3CB371,stroke-width:2px,color:#333
     classDef blockchain fill:#FFB6C1,stroke:#DB7093,stroke-width:2px,color:#333
