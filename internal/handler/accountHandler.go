@@ -10,4 +10,5 @@ func NewAccountHandler(as *service.AccountService) *AccountHandler {
 	return &AccountHandler{as: as}
 }
 
-// Websocket related things with response/req here
+// TODO: This is where internal websocket will go
+// 		This is where AccountService will send its responses to in the future

@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"time"
+
+	"github.com/jakobsym/aura/internal/domain"
 )
 
 // import domain models
@@ -25,6 +27,7 @@ type SolanaTokenRepo interface {
 }
 
 // Websocket based RPC methods
-type SolanaAccountRepo interface {
-	AccountSubscribe(ctx context.Context, walletAddress string) (interface{}, error)
+type SolanaWebSocketRepo interface {
+	AccountListen(ctx context.Context) (<-chan domain.AccountResponse, error) // channel that recieves AccountResponse
+	AccountSubscribe(ctx context.Context, accounts []string) error
 }

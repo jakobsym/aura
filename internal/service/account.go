@@ -1,15 +1,23 @@
 package service
 
-import "github.com/jakobsym/aura/internal/repository"
+import (
+	"context"
+
+	"github.com/jakobsym/aura/internal/repository"
+)
 
 type AccountService struct {
-	solanaRepo repository.SolanaAccountRepo
+	solanaRepo repository.SolanaWebSocketRepo
+	accounts   []string
 }
 
-func NewAccountService(sr repository.SolanaAccountRepo) *AccountService {
-	return &AccountService{solanaRepo: sr}
+// TODO: The accounts are currently supplied via memory, but future will pull from DB
+func NewAccountService(sr repository.SolanaWebSocketRepo, acc []string) *AccountService {
+	return &AccountService{solanaRepo: sr, accounts: acc}
 }
 
-func (as *AccountService) AccountSubsription() (interface{}, error) {
-	return nil, nil
+// call repo methods
+func (as *AccountService) MonitorAccountSubsription(ctx context.Context) error {
+	// websocket data
+	return nil
 }
