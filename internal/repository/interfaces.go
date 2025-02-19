@@ -28,6 +28,6 @@ type SolanaTokenRepo interface {
 
 // Websocket based RPC methods
 type SolanaWebSocketRepo interface {
-	AccountListen(ctx context.Context) (<-chan domain.AccountResponse, error) // channel that recieves AccountResponse
+	AccountListen(ctx context.Context) (<-chan domain.AccountResponse, error)
 	AccountSubscribe(ctx context.Context, accounts []string) error
 }

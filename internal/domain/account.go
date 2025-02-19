@@ -2,25 +2,46 @@ package domain
 
 type HeliusRequest struct {
 	JsonRPC string      `json:"jsonrpc"`
+	ID      int         `json:"id"`
 	Method  string      `json:"method"`
 	Params  interface{} `json:"params"`
 }
 
-type AccountResponse struct {
-	Result struct {
-		Context interface{}   `json:"context"`
-		Value   AccountUpdate `json:"value"`
-	} `json:"result"`
+type AccountNotification struct {
+	JsonRPC string `json:"jsonrpc"`
+	Method  string `json:"method"`
+	Params  struct {
+		Result struct {
+			Context Context `json:"context"`
+			Value   Value   `json:"value"`
+		} `json:"result"`
+		Subscription int `json:"subscription"`
+	} `json:"params"`
 }
 
-type AccountUpdate struct {
-	AccountData struct {
-		Lamports   int64  `json:"lamports"`
-		Owner      string `json:"owner"`
-		Data       string `json:"data"`
-		Executable bool   `json:"executable"`
-		RentEpoch  int64  `json:"rentEpoch"`
-	} `json:"accountData"`
-	Slot    int64  `json:"slot"`
-	Account string `json:"account"`
+type HeliusSubscriptionResponse struct {
+	JsonRPC string `json:"jsonrpc"`
+	Result  int    `json:"result"`
+	ID      int    `json:"id"`
+	Error   *struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	} `json:"error,omitempty"`
+}
+
+type AccountResponse struct {
+	Context Context `json:"context"`
+	Value   Value   `json:"value"`
+}
+
+type Context struct {
+	Slot uint64 `json:"slot"`
+}
+
+type Value struct {
+	Data       interface{} `json:"data"`
+	Executable bool        `json:"executable"`
+	Lamports   uint64      `json:"lamports"`
+	Owner      string      `json:"owner"`
+	RentEpoch  uint64      `json:"rentEpoch"`
 }

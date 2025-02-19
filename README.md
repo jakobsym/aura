@@ -15,7 +15,7 @@ flowchart TD
     end
 
     subgraph Database[Database]
-        DB[(Postgres)]
+        DB[(PostgreSQL)]
     end
 
     subgraph Blockchain[Solana Network]
