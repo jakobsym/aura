@@ -20,7 +20,7 @@ func NewTokenHandler(s *service.TokenService) *TokenHandler {
 func (th *TokenHandler) GetTokenDetails(w http.ResponseWriter, r *http.Request) {
 	tokenAddress := chi.URLParam(r, "token_address")
 	if tokenAddress == "" {
-		http.Error(w, "must provide valid token address", http.StatusInternalServerError)
+		http.Error(w, "must provide valid token address", http.StatusBadRequest)
 		return
 	}
 	res, err := th.s.GetTokenData(r.Context(), tokenAddress)

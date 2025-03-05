@@ -7,18 +7,20 @@ import (
 )
 
 type Router struct {
-	tokenHandler *handler.TokenHandler
+	tokenHandler   *handler.TokenHandler
+	accountHandler *handler.AccountHandler
 	// add other handlers here (I.E: walletHandler)
 }
 
-func NewRouter(th *handler.TokenHandler) *Router {
-	return &Router{tokenHandler: th}
+func NewRouter(th *handler.TokenHandler, ah *handler.AccountHandler) *Router {
+	return &Router{tokenHandler: th, accountHandler: ah}
 }
 
 func (r *Router) LoadRoutes() *chi.Mux {
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 	router.Route("/v0/token", r.tokenRoutes)
+	router.Route("/v0/track", r.accountRoutes)
 
 	return router
 }
@@ -26,4 +28,8 @@ func (r *Router) LoadRoutes() *chi.Mux {
 func (r *Router) tokenRoutes(router chi.Router) {
 	router.Get("/{token_address}", r.tokenHandler.GetTokenDetails)
 	// rest of token handler functions
+}
+
+func (r *Router) accountRoutes(router chi.Router) {
+	router.Post("/{wallet_address}", r.accountHandler.TrackWallet)
 }

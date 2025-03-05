@@ -45,3 +45,7 @@ type Value struct {
 	Owner      string      `json:"owner"`
 	RentEpoch  uint64      `json:"rentEpoch"`
 }
+
+type User struct {
+	UserId string `json:"user_id"`
+}

@@ -9,14 +9,11 @@ import (
 
 // import domain models
 
+// TODO: Not really needed
 type TokenRepo interface {
-	// methods
 }
 
-type WalletRepo interface {
-	// methods
-}
-
+// RPC based repo
 type SolanaTokenRepo interface {
 	GetTokenAge(ctx context.Context, tokenAddress string) (time.Time, error)          // RPC
 	GetTokenNameAndSymbol(ctx context.Context, tokenAddress string) ([]string, error) // RPC
@@ -26,8 +23,16 @@ type SolanaTokenRepo interface {
 	//GetTokenHolders(ctx context.Context, tokenAddress string) (uint64, error) // Helius
 }
 
-// Websocket based RPC methods
+// RPC WS based repo
 type SolanaWebSocketRepo interface {
 	AccountListen(ctx context.Context) (<-chan domain.AccountResponse, error)
 	AccountSubscribe(ctx context.Context, accounts []string) error
+}
+
+// PSQL based repo
+type AccountRepo interface {
+	CheckSubscription(walletAddress string) (bool, error)
+	CreateSubscription(walletAddress, userId string) error
+	SetSubscription(walletAddress, userId string) error
+	// DB methods
 }

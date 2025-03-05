@@ -10,12 +10,12 @@ import (
 )
 
 type TokenService struct {
-	//psqlRepo   repository.TokenRepo
+	psqlRepo   repository.TokenRepo
 	solanaRepo repository.SolanaTokenRepo
 }
 
-func NewTokenService( /* r repository.TokenRepo, */ sr repository.SolanaTokenRepo) *TokenService {
-	return &TokenService{ /*psqlRepo: r, */ solanaRepo: sr}
+func NewTokenService(r repository.TokenRepo, sr repository.SolanaTokenRepo) *TokenService {
+	return &TokenService{psqlRepo: r, solanaRepo: sr}
 }
 
 func (ts *TokenService) GetTokenData(ctx context.Context, tokenAddress string) (*domain.TokenResponse, error) {
