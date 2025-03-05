@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/jakobsym/aura/internal/handler"
 	"github.com/jakobsym/aura/internal/repository/postgres"
@@ -17,13 +16,12 @@ func main() {
 	db := postgres.PostgresConnectionPool()
 	defer db.Close()
 
-	accounts := []string{os.Getenv("WALLET_ADDRESS")}
 	rpcConnection := solana.SolanaRpcConnection()
 	wsConnection := solana.SolanaWebSocketConnection()
 
 	solanaAccountRepo := solana.NewSolanaWebSocketRepo(wsConnection) // TODO: Rename `solanaWSRepo`
 	accountPsqlRepo := postgres.NewPostgresAccountRepo(db)
-	solanaAccountService := service.NewAccountService(solanaAccountRepo, accounts, accountPsqlRepo)
+	solanaAccountService := service.NewAccountService(solanaAccountRepo, accountPsqlRepo)
 	accountHandler := handler.NewAccountHandler(solanaAccountService)
 
 	tokenPsqlRepo := postgres.NewPostgresTokenRepo(db)

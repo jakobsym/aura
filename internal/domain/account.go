@@ -4,7 +4,7 @@ type HeliusRequest struct {
 	JsonRPC string      `json:"jsonrpc"`
 	ID      int         `json:"id"`
 	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
+	Params  interface{} `json:"params", omitempty`
 }
 
 type AccountNotification struct {
@@ -48,4 +48,10 @@ type Value struct {
 
 type User struct {
 	UserId string `json:"user_id"`
+}
+
+type HeliusUnsubscribeResponse struct {
+	JsonRPC string `json:"jsonrpc"`
+	Result  bool   `json:"result"`
+	ID      int    `json:"id"`
 }

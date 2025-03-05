@@ -28,6 +28,7 @@ func (ah *AccountHandler) TrackWallet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var user domain.User
+	// read TG ID from body
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, "error decoding response body", http.StatusBadRequest)
 		return
