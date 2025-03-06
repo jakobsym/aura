@@ -34,5 +34,7 @@ type AccountRepo interface {
 	CheckSubscription(walletAddress string) (bool, error)
 	CreateSubscription(walletAddress, userId string) error
 	SetSubscription(walletAddress, userId string) error
+	CreateWallet(walletAddress string) error
+	RemoveSubscription(walletAddress, userId string) (bool, error)
 	// DB methods
 }

@@ -1,4 +1,13 @@
-# aura Architecture
+# Aura
+Aura is a Solana based onchain data retrieval tool that enables traders to make more data driven decisions.
+
+## Installation
+TBA
+
+## Usage
+TBA
+
+## Aura Architecture
 ```mermaid
 flowchart TD
     subgraph UI[Frontend]

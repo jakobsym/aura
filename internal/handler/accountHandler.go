@@ -44,6 +44,28 @@ func (ah *AccountHandler) TrackWallet(w http.ResponseWriter, r *http.Request) {
 	// if not create new entry for this wallet
 }
 
+// TODO: `UntrackWallet() not implemented`
+func (ah *AccountHandler) UntrackWallet(w http.ResponseWriter, r *http.Request) {
+	walletAddress := chi.URLParam(r, "wallet_address")
+	if walletAddress == "" {
+		http.Error(w, "must provide valid wallet address", http.StatusBadRequest)
+		return
+	}
+	var user domain.User
+	// read TG ID from body
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		http.Error(w, "error decoding response body", http.StatusBadRequest)
+		return
+	}
+	if err := ah.as.UntrackWallet(walletAddress, user.UserId); err != nil {
+		http.Error(w, "failed to track wallet", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode("success")
+}
+
 func (ah *AccountHandler) GetWalletUpdates(w http.ResponseWriter, r *http.Request) {
 	// as updates arrive, dispatch them to telegram
 }

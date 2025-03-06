@@ -60,6 +60,7 @@ func (ar *postgresAccountRepo) CreateSubscription(walletAddress, userId string) 
 
 func (ar *postgresAccountRepo) SetSubscription(walletAddress, userId string) error {
 	tx, err := ar.db.BeginTx(context.TODO(), pgx.TxOptions{})
+	defer tx.Rollback(context.TODO())
 	if err != nil {
 		return err
 	}
@@ -87,8 +88,40 @@ func (ar *postgresAccountRepo) CreateWallet(walletAddress string) error {
 	return nil
 }
 
-func (ar *postgresAccountRepo) UntrackWallet(walletAddress string) any {
-	return nil
+// Removes the entry from subscription table
+// checks if other users are tracking respective wallet address
+// returns (true, nil) on success where true == wallet still being tracked by someone
+func (ar *postgresAccountRepo) RemoveSubscription(walletAddress, userId string) (bool, error) {
+	tx, err := ar.db.BeginTx(context.TODO(), pgx.TxOptions{})
+	if err != nil {
+		return false, err
+	}
+	defer tx.Rollback(context.TODO())
+	_, err = tx.Exec(context.TODO(), `DELETE FROM subscriptions WHERE wallet_address=$1 and user_id=$2;`, walletAddress, userId)
+	if err != nil {
+		return false, fmt.Errorf("failed to perform operation: %w", err)
+	}
+
+	// find how many users are tracking respective wallet
+	var userCount int
+	err = tx.QueryRow(context.TODO(), `SELECT COUNT(*) FROM subscriptions where wallet_address=$1;`, walletAddress).Scan(&userCount)
+	if err != nil {
+		return false, fmt.Errorf("failed to perform operation: %w", err)
+	}
+
+	// set inactive if no-one is tracking
+	if userCount == 0 {
+		_, err = tx.Exec(context.TODO(), `UPDATE wallet SET subcription_active = FALSE WHERE wallet_address=$1;`, walletAddress)
+		if err != nil {
+			return false, fmt.Errorf("failed to perform operation: %w", err)
+		}
+	}
+
+	if err := tx.Commit(context.TODO()); err != nil {
+		return false, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return userCount > 0, nil
 }
 
 // TODO: When user starts bot, this will invoke

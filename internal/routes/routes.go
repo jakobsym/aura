@@ -32,4 +32,5 @@ func (r *Router) tokenRoutes(router chi.Router) {
 
 func (r *Router) accountRoutes(router chi.Router) {
 	router.Post("/{wallet_address}", r.accountHandler.TrackWallet)
+	router.Put("/{wallet_address}", r.accountHandler.UntrackWallet)
 }
