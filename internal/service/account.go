@@ -63,9 +63,15 @@ func (as *AccountService) TrackWallet(walletAddress, userId string) error {
 }
 
 func (as *AccountService) UntrackWallet(walletAddress, userId string) error {
-
-	// sub active: change value for wallet table, update subscription table, send unsubscribe event to WS
-
-	// sub inactive: handle this case
+	isTracked, err := as.psqlRepo.RemoveSubscription(walletAddress, userId)
+	if err != nil {
+		return err
+	}
+	if !isTracked {
+		_, err := as.solanaRepo.AccountUnsubscribe(context.TODO(), walletAddress, userId)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
