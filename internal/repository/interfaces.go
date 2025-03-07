@@ -7,11 +7,7 @@ import (
 	"github.com/jakobsym/aura/internal/domain"
 )
 
-// import domain models
-
-// TODO: Not really needed
-type TokenRepo interface {
-}
+type TokenRepo interface{}
 
 // RPC based repo
 type SolanaTokenRepo interface {
@@ -28,6 +24,7 @@ type SolanaWebSocketRepo interface {
 	AccountListen(ctx context.Context) (<-chan domain.AccountResponse, error)
 	AccountSubscribe(ctx context.Context, walletAddress, userId string) error
 	AccountUnsubscribe(ctx context.Context, walletAddress, userId string) (bool, error)
+	HandleWebSocketConnection(ctx context.Context)
 }
 
 // PSQL based repo

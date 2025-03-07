@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/jakobsym/aura/internal/domain"
@@ -20,20 +21,85 @@ type solanaWebSocketRepo struct {
 	//Accounts  []string
 }
 
-// TODO: Accounts will have to come from DB (future issue)
+const (
+	pongWait   = 60 * time.Second    // server waits 60s for a ping
+	pingPeriod = (pongWait * 9) / 10 // server sends ping every 54s
+	writeWait  = 10 * time.Second
+)
+
 func NewSolanaWebSocketRepo(ws *websocket.Conn) repository.SolanaWebSocketRepo {
 	return &solanaWebSocketRepo{Websocket: ws, mu: sync.Mutex{}}
 }
 
-// TODO:  Make lifecycle/time for this connection?
 func SolanaWebSocketConnection() *websocket.Conn {
 	url := fmt.Sprintf("wss://mainnet.helius-rpc.com/?api-key=%s", os.Getenv("HELIUS_API_KEY"))
 	ws, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		log.Fatalf("unable to create ws connection: %v", err)
 	}
+	ws.SetReadDeadline(time.Now().Add(pongWait))
+	ws.SetPongHandler(func(string) error {
+		ws.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+	defer ws.Close()
 	log.Println("WebSocket conneciton established.")
 	return ws
+}
+
+// TODO: Probably needs more work
+// ping/pong with WS connection to maintain its lifecycle
+func (sr *solanaWebSocketRepo) HandleWebSocketConnection(ctx context.Context) {
+	pingTicker := time.NewTicker(pingPeriod)
+	defer pingTicker.Stop()
+
+	go func() {
+		for range pingTicker.C {
+			sr.Websocket.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := sr.Websocket.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}()
+
+	for {
+		msgType, msg, err := sr.Websocket.ReadMessage()
+		if err != nil {
+			break
+		}
+		log.Printf("recieved: %s of type: %d\n", msg, msgType)
+	}
+
+}
+
+func (sr *solanaWebSocketRepo) AccountListen(ctx context.Context) (<-chan domain.AccountResponse, error) {
+	updates := make(chan domain.AccountResponse)
+
+	go func() {
+		defer close(updates)
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				var notif domain.AccountNotification
+				if err := sr.Websocket.ReadJSON(&notif); err != nil {
+					log.Printf("error reading message: %v", err)
+					continue
+				}
+				if notif.Method == "accountNotification" {
+					res := domain.AccountResponse{
+						Context: notif.Params.Result.Context,
+						Value:   notif.Params.Result.Value,
+					}
+					updates <- res
+					//log.Printf("account update: %+v", res)
+				}
+			}
+		}
+	}()
+	return updates, nil
 }
 
 func (sr *solanaWebSocketRepo) AccountSubscribe(ctx context.Context, walletAddress, userId string) error {
@@ -92,34 +158,4 @@ func (sr *solanaWebSocketRepo) AccountUnsubscribe(ctx context.Context, walletAdd
 		return false, fmt.Errorf("failed to read msg to ws: %w", err)
 	}
 	return unsubscribeResponse.Result, nil
-}
-
-func (sr *solanaWebSocketRepo) AccountListen(ctx context.Context) (<-chan domain.AccountResponse, error) {
-	updates := make(chan domain.AccountResponse)
-
-	go func() {
-		defer close(updates)
-
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				var notif domain.AccountNotification
-				if err := sr.Websocket.ReadJSON(&notif); err != nil {
-					log.Printf("error reading message: %v", err)
-					continue
-				}
-				if notif.Method == "accountNotification" {
-					res := domain.AccountResponse{
-						Context: notif.Params.Result.Context,
-						Value:   notif.Params.Result.Value,
-					}
-					updates <- res
-					//log.Printf("account update: %+v", res)
-				}
-			}
-		}
-	}()
-	return updates, nil
 }

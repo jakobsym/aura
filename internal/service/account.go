@@ -15,7 +15,6 @@ type AccountService struct {
 	psqlRepo   repository.AccountRepo
 }
 
-// TODO: The accounts are currently supplied via memory, but future will pull from DB
 func NewAccountService(sr repository.SolanaWebSocketRepo, pr repository.AccountRepo) *AccountService {
 	return &AccountService{solanaRepo: sr, psqlRepo: pr}
 }
@@ -24,6 +23,7 @@ func NewAccountService(sr repository.SolanaWebSocketRepo, pr repository.AccountR
 // using the TG api
 // within the response the ID is returned which can be used to map the response to the respective user
 func (as *AccountService) MonitorAccountSubsription(ctx context.Context) error {
+	as.solanaRepo.HandleWebSocketConnection(ctx)
 	// websocket data
 	updates, err := as.solanaRepo.AccountListen(ctx)
 	if err != nil {
