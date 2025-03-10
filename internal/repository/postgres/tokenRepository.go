@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -36,6 +37,7 @@ func PostgresConnectionPool() *pgxpool.Pool {
 		fmt.Fprintf(os.Stderr, "unable to connect to database: %v\n", err)
 		os.Exit(1)
 	}
+	log.Printf("connected to db")
 	return dbpool
 }
 

@@ -18,24 +18,27 @@ func main() {
 
 	rpcConnection := solana.SolanaRpcConnection()
 	wsConnection := solana.SolanaWebSocketConnection()
+	defer wsConnection.Close()
 
 	solanaAccountRepo := solana.NewSolanaWebSocketRepo(wsConnection) // TODO: Rename `solanaWSRepo`
 	accountPsqlRepo := postgres.NewPostgresAccountRepo(db)
 	solanaAccountService := service.NewAccountService(solanaAccountRepo, accountPsqlRepo)
 	accountHandler := handler.NewAccountHandler(solanaAccountService)
 
-	tokenPsqlRepo := postgres.NewPostgresTokenRepo(db)
 	solanaTokenRepo := solana.NewSolanaTokenRepo(rpcConnection)
+	tokenPsqlRepo := postgres.NewPostgresTokenRepo(db)
 	tokenService := service.NewTokenService(tokenPsqlRepo, solanaTokenRepo)
 	tokenHandler := handler.NewTokenHandler(tokenService)
 
 	router := routes.NewRouter(tokenHandler, accountHandler)
 
 	ctx := context.Background()
+
 	log.Println("service running on 3000")
 	if err := solanaAccountService.MonitorAccountSubsription(ctx); err != nil {
 		log.Fatalf("failed to start monitoring: %v", err)
 	}
+
 	if err := http.ListenAndServe(":3000", router.LoadRoutes()); err != nil {
 		panic(err)
 	}

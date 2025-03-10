@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -55,6 +56,7 @@ func (ar *postgresAccountRepo) CreateSubscription(walletAddress, userId string) 
 	if err := tx.Commit(context.TODO()); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
+	log.Printf("subscription created for: %s", userId)
 	return nil
 }
 
@@ -76,6 +78,7 @@ func (ar *postgresAccountRepo) SetSubscription(walletAddress, userId string) err
 	if err := tx.Commit(context.TODO()); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
+	log.Printf("subscription set for: %s", userId)
 	return nil
 }
 

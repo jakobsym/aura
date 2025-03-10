@@ -38,17 +38,12 @@ func SolanaWebSocketConnection() *websocket.Conn {
 		log.Fatalf("unable to create ws connection: %v", err)
 	}
 	ws.SetReadDeadline(time.Now().Add(pongWait))
-	ws.SetPongHandler(func(string) error {
-		ws.SetReadDeadline(time.Now().Add(pongWait))
-		return nil
-	})
-	defer ws.Close()
+
 	log.Println("WebSocket conneciton established.")
 	return ws
 }
 
-// TODO: Probably needs more work
-// ping/pong with WS connection to maintain its lifecycle
+// TODO: NEEDS TO BE FIXED ONLY SEND PINGS
 func (sr *solanaWebSocketRepo) HandleWebSocketConnection(ctx context.Context) {
 	pingTicker := time.NewTicker(pingPeriod)
 	defer pingTicker.Stop()
@@ -61,40 +56,52 @@ func (sr *solanaWebSocketRepo) HandleWebSocketConnection(ctx context.Context) {
 			}
 		}
 	}()
-
-	for {
-		msgType, msg, err := sr.Websocket.ReadMessage()
-		if err != nil {
-			break
+	/*
+		for {
+			msgType, msg, err := sr.Websocket.ReadMessage()
+			if err != nil {
+				break
+			}
+			log.Printf("recieved: %s of type: %d\n", msg, msgType)
 		}
-		log.Printf("recieved: %s of type: %d\n", msg, msgType)
-	}
+	*/
 
 }
 
 func (sr *solanaWebSocketRepo) AccountListen(ctx context.Context) (<-chan domain.AccountResponse, error) {
 	updates := make(chan domain.AccountResponse)
+	readCh := make(chan error)
 
 	go func() {
 		defer close(updates)
-
+		defer close(readCh)
 		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
+			go func() {
 				var notif domain.AccountNotification
-				if err := sr.Websocket.ReadJSON(&notif); err != nil {
-					log.Printf("error reading message: %v", err)
-					continue
-				}
-				if notif.Method == "accountNotification" {
+				err := sr.Websocket.ReadJSON(&notif)
+				readCh <- err
+				if err == nil && notif.Method == "accountNotification" {
 					res := domain.AccountResponse{
 						Context: notif.Params.Result.Context,
 						Value:   notif.Params.Result.Value,
 					}
 					updates <- res
-					//log.Printf("account update: %+v", res)
+				}
+			}()
+
+			select {
+			case <-ctx.Done():
+				sr.Websocket.Close()
+				return
+			case err := <-readCh:
+				if err != nil {
+					if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
+						// TODO: Reconnection logic?
+						log.Printf("websocket closed: %v", err)
+					} else {
+						log.Printf("error reading message: %v", err)
+					}
+					return
 				}
 			}
 		}
