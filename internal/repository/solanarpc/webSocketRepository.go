@@ -24,6 +24,7 @@ type solanaWebSocketRepo struct {
 const (
 	pongWait   = 60 * time.Second    // server waits 60s for a ping
 	pingPeriod = (pongWait * 9) / 10 // server sends ping every 54s
+	readWait   = 60 * time.Second
 	writeWait  = 10 * time.Second
 )
 
@@ -37,16 +38,21 @@ func SolanaWebSocketConnection() *websocket.Conn {
 	if err != nil {
 		log.Fatalf("unable to create ws connection: %v", err)
 	}
-	ws.SetReadDeadline(time.Now().Add(pongWait))
-
+	ws.SetPongHandler(func(string) error {
+		ws.SetReadDeadline(time.Now().Add(readWait))
+		return nil
+	})
 	log.Println("WebSocket conneciton established.")
 	return ws
 }
 
-// TODO: NEEDS TO BE FIXED ONLY SEND PINGS
+// TODO: Use context to handle graceful shutodwn
+// setting read deadlines here to handle idle periods
 func (sr *solanaWebSocketRepo) HandleWebSocketConnection(ctx context.Context) {
 	pingTicker := time.NewTicker(pingPeriod)
 	defer pingTicker.Stop()
+
+	sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
 
 	go func() {
 		for range pingTicker.C {
@@ -54,20 +60,12 @@ func (sr *solanaWebSocketRepo) HandleWebSocketConnection(ctx context.Context) {
 			if err := sr.Websocket.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
+			sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
 		}
 	}()
-	/*
-		for {
-			msgType, msg, err := sr.Websocket.ReadMessage()
-			if err != nil {
-				break
-			}
-			log.Printf("recieved: %s of type: %d\n", msg, msgType)
-		}
-	*/
-
 }
 
+// TODO: This has race conditions maybe revert to original version?
 func (sr *solanaWebSocketRepo) AccountListen(ctx context.Context) (<-chan domain.AccountResponse, error) {
 	updates := make(chan domain.AccountResponse)
 	readCh := make(chan error)
