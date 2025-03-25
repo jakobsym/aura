@@ -68,38 +68,26 @@ func (sr *solanaWebSocketRepo) HandleWebSocketConnection(ctx context.Context) {
 // TODO: This has race conditions maybe revert to original version?
 func (sr *solanaWebSocketRepo) AccountListen(ctx context.Context) (<-chan domain.AccountResponse, error) {
 	updates := make(chan domain.AccountResponse)
-	readCh := make(chan error)
 
 	go func() {
 		defer close(updates)
-		defer close(readCh)
 		for {
-			go func() {
+			select {
+			case <-ctx.Done():
+				sr.Websocket.Close()
+				return
+			default:
 				var notif domain.AccountNotification
 				err := sr.Websocket.ReadJSON(&notif)
-				readCh <- err
-				if err == nil && notif.Method == "accountNotification" {
+				if err != nil {
+					return
+				}
+				if notif.Method == "accountNotification" {
 					res := domain.AccountResponse{
 						Context: notif.Params.Result.Context,
 						Value:   notif.Params.Result.Value,
 					}
 					updates <- res
-				}
-			}()
-
-			select {
-			case <-ctx.Done():
-				sr.Websocket.Close()
-				return
-			case err := <-readCh:
-				if err != nil {
-					if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
-						// TODO: Reconnection logic?
-						log.Printf("websocket closed: %v", err)
-					} else {
-						log.Printf("error reading message: %v", err)
-					}
-					return
 				}
 			}
 		}

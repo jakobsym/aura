@@ -75,3 +75,11 @@ func (as *AccountService) UntrackWallet(walletAddress, userId string) error {
 	}
 	return nil
 }
+
+func (as *AccountService) CreateUser(userId string) error {
+	err := as.psqlRepo.CreateUser(userId)
+	if err != nil {
+		return err
+	}
+	return nil
+}

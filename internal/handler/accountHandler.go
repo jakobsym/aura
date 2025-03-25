@@ -54,7 +54,7 @@ func (ah *AccountHandler) UntrackWallet(w http.ResponseWriter, r *http.Request) 
 	var user domain.User
 	// read TG ID from body
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, "error decoding response body", http.StatusBadRequest)
+		http.Error(w, "error decoding req body", http.StatusBadRequest)
 		return
 	}
 	if err := ah.as.UntrackWallet(walletAddress, user.UserId); err != nil {
@@ -62,6 +62,20 @@ func (ah *AccountHandler) UntrackWallet(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode("success")
+}
+
+func (ah *AccountHandler) CreateUserEntry(w http.ResponseWriter, r *http.Request) {
+	var user domain.User
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		http.Error(w, "error decoding req body", http.StatusBadRequest)
+		return
+	}
+	if err := ah.as.CreateUser(user.UserId); err != nil {
+		http.Error(w, "error creating user", http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode("success")
 }

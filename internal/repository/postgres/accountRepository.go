@@ -128,6 +128,11 @@ func (ar *postgresAccountRepo) RemoveSubscription(walletAddress, userId string) 
 }
 
 // TODO: When user starts bot, this will invoke
-func (ar *postgresAccountRepo) CreateUser(userId string) any {
+func (ar *postgresAccountRepo) CreateUser(userId string) error {
+	query := `INSERT into users(telegram_id) VALUES($1) ON CONFLICT (telegram_id) DO NOTHING;`
+	_, err := ar.db.Exec(context.TODO(), query, userId)
+	if err != nil {
+		return err
+	}
 	return nil
 }
