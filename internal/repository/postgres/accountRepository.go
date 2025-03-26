@@ -49,7 +49,7 @@ func (ar *postgresAccountRepo) CreateSubscription(walletAddress string, userId i
 	if err != nil {
 		return fmt.Errorf("error inserting into wallet table: %w", err)
 	}
-	_, err = tx.Exec(context.TODO(), `INSERT into subscriptions(user_id, wallet_address) VALUES($1, $2) ON CONFLICT (user_id, wallet_address) DO NOTHING;`, userId, walletAddress)
+	_, err = tx.Exec(context.TODO(), `INSERT into subscriptions(user_id, wallet_address) VALUES($1, $2);`, userId, walletAddress)
 	if err != nil {
 		return fmt.Errorf("error inserting into join table: %w", err)
 	}
@@ -71,7 +71,7 @@ func (ar *postgresAccountRepo) SetSubscription(walletAddress string, userId int)
 	if err != nil {
 		return fmt.Errorf("error updating wallet state: %w", err)
 	}
-	_, err = tx.Exec(context.TODO(), `INSERT into subscriptions(user_id, wallet_address) VALUES($1, $2) ON CONFLICT (user_id, wallet_address) DO NOTHING;`, userId, walletAddress)
+	_, err = tx.Exec(context.TODO(), `INSERT into subscriptions(user_id, wallet_address) VALUES($1, $2);`, userId, walletAddress)
 	if err != nil {
 		return fmt.Errorf("error inserting into join table: %w", err)
 	}
