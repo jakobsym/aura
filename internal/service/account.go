@@ -40,7 +40,7 @@ func (as *AccountService) MonitorAccountSubsription(ctx context.Context) error {
 	return nil
 }
 
-func (as *AccountService) TrackWallet(walletAddress, userId string) error {
+func (as *AccountService) TrackWallet(walletAddress string, userId int) error {
 	// check if subscription active for given walletAddress
 	active, err := as.psqlRepo.CheckSubscription(walletAddress)
 	// wallet !exist
@@ -62,7 +62,7 @@ func (as *AccountService) TrackWallet(walletAddress, userId string) error {
 	return as.solanaRepo.AccountSubscribe(context.TODO(), walletAddress, userId)
 }
 
-func (as *AccountService) UntrackWallet(walletAddress, userId string) error {
+func (as *AccountService) UntrackWallet(walletAddress string, userId int) error {
 	isTracked, err := as.psqlRepo.RemoveSubscription(walletAddress, userId)
 	if err != nil {
 		return err
@@ -76,9 +76,10 @@ func (as *AccountService) UntrackWallet(walletAddress, userId string) error {
 	return nil
 }
 
-func (as *AccountService) CreateUser(userId string) error {
+func (as *AccountService) CreateUser(userId int) error {
 	err := as.psqlRepo.CreateUser(userId)
 	if err != nil {
+		log.Printf("error creating user: %v", err)
 		return err
 	}
 	return nil

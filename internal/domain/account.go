@@ -47,7 +47,7 @@ type Value struct {
 }
 
 type User struct {
-	UserId string `json:"user_id"`
+	UserId int `json:"user_id"`
 }
 
 type HeliusUnsubscribeResponse struct {

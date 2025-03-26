@@ -22,18 +22,18 @@ type SolanaTokenRepo interface {
 // RPC WS based repo
 type SolanaWebSocketRepo interface {
 	AccountListen(ctx context.Context) (<-chan domain.AccountResponse, error)
-	AccountSubscribe(ctx context.Context, walletAddress, userId string) error
-	AccountUnsubscribe(ctx context.Context, walletAddress, userId string) (bool, error)
+	AccountSubscribe(ctx context.Context, walletAddress string, userId int) error
+	AccountUnsubscribe(ctx context.Context, walletAddress string, userId int) (bool, error)
 	HandleWebSocketConnection(ctx context.Context)
 }
 
 // PSQL based repo
 type AccountRepo interface {
 	CheckSubscription(walletAddress string) (bool, error)
-	CreateSubscription(walletAddress, userId string) error
-	SetSubscription(walletAddress, userId string) error
+	CreateSubscription(walletAddress string, userId int) error
+	SetSubscription(walletAddress string, userId int) error
 	CreateWallet(walletAddress string) error
-	RemoveSubscription(walletAddress, userId string) (bool, error)
-	CreateUser(userId string) error
+	RemoveSubscription(walletAddress string, userId int) (bool, error)
+	CreateUser(userId int) error
 	// DB methods
 }

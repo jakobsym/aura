@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"sync"
 	"time"
 
@@ -95,16 +94,13 @@ func (sr *solanaWebSocketRepo) AccountListen(ctx context.Context) (<-chan domain
 	return updates, nil
 }
 
-func (sr *solanaWebSocketRepo) AccountSubscribe(ctx context.Context, walletAddress, userId string) error {
+func (sr *solanaWebSocketRepo) AccountSubscribe(ctx context.Context, walletAddress string, userId int) error {
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
-	subscriptionId, err := strconv.Atoi(userId)
-	if err != nil {
-		return fmt.Errorf("error converting userId to int: %w", err)
-	}
+
 	msg := domain.HeliusRequest{
 		JsonRPC: "2.0",
-		ID:      subscriptionId,
+		ID:      userId,
 		Method:  "accountSubscribe",
 		Params: []any{
 			walletAddress,
@@ -130,17 +126,13 @@ func (sr *solanaWebSocketRepo) AccountSubscribe(ctx context.Context, walletAddre
 	return nil
 }
 
-func (sr *solanaWebSocketRepo) AccountUnsubscribe(ctx context.Context, walletAddress, userId string) (bool, error) {
+func (sr *solanaWebSocketRepo) AccountUnsubscribe(ctx context.Context, walletAddress string, userId int) (bool, error) {
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
-	subscriptionId, err := strconv.Atoi(userId)
-	if err != nil {
-		return false, err
-	}
 
 	msg := domain.HeliusRequest{
 		JsonRPC: "2.0",
-		ID:      subscriptionId,
+		ID:      userId,
 		Method:  "accountUnsubscribe",
 	}
 	if err := sr.Websocket.WriteJSON(msg); err != nil {

@@ -38,7 +38,7 @@ func (ar *postgresAccountRepo) CheckSubscription(walletAddress string) (bool, er
 	return isActive, nil
 }
 
-func (ar *postgresAccountRepo) CreateSubscription(walletAddress, userId string) error {
+func (ar *postgresAccountRepo) CreateSubscription(walletAddress string, userId int) error {
 	tx, err := ar.db.BeginTx(context.TODO(), pgx.TxOptions{})
 	if err != nil {
 		return err
@@ -56,11 +56,11 @@ func (ar *postgresAccountRepo) CreateSubscription(walletAddress, userId string) 
 	if err := tx.Commit(context.TODO()); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
-	log.Printf("subscription created for: %s", userId)
+	log.Printf("subscription created for: %d", userId)
 	return nil
 }
 
-func (ar *postgresAccountRepo) SetSubscription(walletAddress, userId string) error {
+func (ar *postgresAccountRepo) SetSubscription(walletAddress string, userId int) error {
 	tx, err := ar.db.BeginTx(context.TODO(), pgx.TxOptions{})
 	defer tx.Rollback(context.TODO())
 	if err != nil {
@@ -78,7 +78,7 @@ func (ar *postgresAccountRepo) SetSubscription(walletAddress, userId string) err
 	if err := tx.Commit(context.TODO()); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
-	log.Printf("subscription set for: %s", userId)
+	log.Printf("subscription set for: %d", userId)
 	return nil
 }
 
@@ -94,7 +94,7 @@ func (ar *postgresAccountRepo) CreateWallet(walletAddress string) error {
 // Removes the entry from subscription table
 // checks if other users are tracking respective wallet address
 // returns (true, nil) on success where true == wallet still being tracked by someone
-func (ar *postgresAccountRepo) RemoveSubscription(walletAddress, userId string) (bool, error) {
+func (ar *postgresAccountRepo) RemoveSubscription(walletAddress string, userId int) (bool, error) {
 	tx, err := ar.db.BeginTx(context.TODO(), pgx.TxOptions{})
 	if err != nil {
 		return false, err
@@ -127,9 +127,9 @@ func (ar *postgresAccountRepo) RemoveSubscription(walletAddress, userId string) 
 	return userCount > 0, nil
 }
 
-// TODO: When user starts bot, this will invoke
-func (ar *postgresAccountRepo) CreateUser(userId string) error {
-	query := `INSERT into users(telegram_id) VALUES($1) ON CONFLICT (telegram_id) DO NOTHING;`
+// Note: you can only use ON CONFLICT if your column has a UNIQUE constraint
+func (ar *postgresAccountRepo) CreateUser(userId int) error {
+	query := `INSERT into users(telegram_id) VALUES($1);`
 	_, err := ar.db.Exec(context.TODO(), query, userId)
 	if err != nil {
 		return err
