@@ -30,6 +30,7 @@ func (as *AccountService) MonitorAccountSubsription(ctx context.Context) error {
 		return fmt.Errorf("service listen error: %v", err)
 	}
 	go func() {
+		defer as.solanaRepo.StopAccountListen(updates)
 		for update := range updates {
 			log.Printf("transaction detected: %+v", update)
 			// currently just letting the repo print updates

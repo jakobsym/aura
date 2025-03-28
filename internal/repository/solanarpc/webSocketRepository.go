@@ -48,6 +48,25 @@ func SolanaWebSocketConnection() *websocket.Conn {
 	return ws
 }
 
+// TODO: Use context to handle graceful shutodwn
+// setting read deadlines here to handle idle periods
+func (sr *solanaWebSocketRepo) HandleWebSocketConnection(ctx context.Context) {
+	pingTicker := time.NewTicker(pingPeriod)
+	defer pingTicker.Stop()
+
+	sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
+
+	go func() {
+		for range pingTicker.C {
+			sr.Websocket.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := sr.Websocket.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+			sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
+		}
+	}()
+}
+
 func (sr *solanaWebSocketRepo) StartReader(ctx context.Context) {
 	go func() {
 		for {
@@ -60,7 +79,7 @@ func (sr *solanaWebSocketRepo) StartReader(ctx context.Context) {
 
 			// try accountSubscribe() response
 			var accountSubscribeRes domain.HeliusSubscriptionResponse
-			if err := json.Unmarshal(rawRes, &accountSubscribeRes); err != nil && accountSubscribeRes.ID != 0 {
+			if err := json.Unmarshal(rawRes, &accountSubscribeRes); err == nil && accountSubscribeRes.ID != 0 {
 				if ch, ok := sr.pending.Load(accountSubscribeRes.ID); ok {
 					ch.(chan domain.HeliusSubscriptionResponse) <- accountSubscribeRes
 					sr.pending.Delete(accountSubscribeRes.ID)
@@ -92,59 +111,29 @@ func (sr *solanaWebSocketRepo) StartReader(ctx context.Context) {
 	}()
 }
 
-// TODO: Use context to handle graceful shutodwn
-// setting read deadlines here to handle idle periods
-func (sr *solanaWebSocketRepo) HandleWebSocketConnection(ctx context.Context) {
-	pingTicker := time.NewTicker(pingPeriod)
-	defer pingTicker.Stop()
-
-	sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
-
-	go func() {
-		for range pingTicker.C {
-			sr.Websocket.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := sr.Websocket.WriteMessage(websocket.PingMessage, nil); err != nil {
-				return
-			}
-			sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
-		}
-	}()
+func (sr *solanaWebSocketRepo) AccountListen(ctx context.Context) (<-chan domain.AccountResponse, error) {
+	updates := make(chan domain.AccountResponse, 10)
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+	sr.subs = append(sr.subs, updates)
+	return updates, nil
 }
 
-// TODO: This has race conditions maybe revert to original version?
-func (sr *solanaWebSocketRepo) AccountListen(ctx context.Context) (<-chan domain.AccountResponse, error) {
-	updates := make(chan domain.AccountResponse)
-
-	go func() {
-		defer close(updates)
-		for {
-			select {
-			case <-ctx.Done():
-				sr.Websocket.Close()
-				return
-			default:
-				var notif domain.AccountNotification
-				err := sr.Websocket.ReadJSON(&notif)
-				if err != nil {
-					return
-				}
-				if notif.Method == "accountNotification" {
-					res := domain.AccountResponse{
-						Context: notif.Params.Result.Context,
-						Value:   notif.Params.Result.Value,
-					}
-					updates <- res
-				}
-			}
+func (sr *solanaWebSocketRepo) StopAccountListen(ch <-chan domain.AccountResponse) {
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+	for i, sub := range sr.subs {
+		if sub == ch {
+			sr.subs = append(sr.subs[:i], sr.subs[i+1:]...)
+			close(sub)
+			break
 		}
-	}()
-	return updates, nil
+	}
 }
 
 func (sr *solanaWebSocketRepo) AccountSubscribe(ctx context.Context, walletAddress string, userId int) error {
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
-	log.Printf("walletAddress=%s\nuserId=%d", walletAddress, userId)
 	msg := domain.HeliusRequest{
 		JsonRPC: "2.0",
 		ID:      userId,
@@ -157,23 +146,29 @@ func (sr *solanaWebSocketRepo) AccountSubscribe(ctx context.Context, walletAddre
 			},
 		},
 	}
+	responseCh := make(chan domain.HeliusSubscriptionResponse, 1)
+	sr.pending.Store(msg.ID, responseCh)
+	defer sr.pending.Delete(msg.ID)
+
 	if err := sr.Websocket.WriteJSON(msg); err != nil {
-		log.Printf("websocket WriteJSON; AccountSubscribe(): %v", err)
-		return fmt.Errorf("failed to subscribe: %w", err)
-	}
-	var subscriptionRes domain.HeliusSubscriptionResponse
-	if err := sr.Websocket.ReadJSON(&subscriptionRes); err != nil {
-		return fmt.Errorf("failed to read subscription response: %w", err)
+		return fmt.Errorf("failed to send subscription request: %w", err)
 	}
 
-	if subscriptionRes.Error != nil {
-		return fmt.Errorf("error in subscription")
+	select {
+	case res := <-responseCh:
+		if res.Error != nil {
+			return fmt.Errorf("subscription error: %v", res.Error.Message)
+		}
+		log.Printf("Subscribed to %s | ID: %d\n", walletAddress, res.Result)
+		return nil
+	case <-time.After(30 * time.Second):
+		return fmt.Errorf("subscription timeout")
+	case <-ctx.Done():
+		return fmt.Errorf("context cancelled while awaiting subscription response")
 	}
-
-	log.Printf("Subscribed to: %s || Subscription ID: %d", walletAddress, subscriptionRes.Result)
-	return nil
 }
 
+// TODO: Fix to follow AccountSubscribe()
 func (sr *solanaWebSocketRepo) AccountUnsubscribe(ctx context.Context, walletAddress string, userId int) (bool, error) {
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
