@@ -48,8 +48,6 @@ func SolanaWebSocketConnection() *websocket.Conn {
 	return ws
 }
 
-// TODO: Use context to handle graceful shutodwn
-// setting read deadlines here to handle idle periods
 func (sr *solanaWebSocketRepo) HandleWebSocketConnection(ctx context.Context) {
 	pingTicker := time.NewTicker(pingPeriod)
 	defer pingTicker.Stop()
@@ -57,18 +55,37 @@ func (sr *solanaWebSocketRepo) HandleWebSocketConnection(ctx context.Context) {
 	sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
 
 	go func() {
-		for range pingTicker.C {
-			sr.Websocket.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := sr.Websocket.WriteMessage(websocket.PingMessage, nil); err != nil {
+		for {
+			select {
+			case <-pingTicker.C:
+				sr.mu.Lock()
+				// write deadling for ping
+				if err := sr.Websocket.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+					sr.mu.Unlock()
+					return
+				}
+				// send ping
+				if err := sr.Websocket.WriteMessage(websocket.PingMessage, nil); err != nil {
+					sr.mu.Unlock()
+					return
+				}
+				sr.mu.Unlock()
+			case <-ctx.Done():
 				return
 			}
-			sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
 		}
 	}()
 }
 
 func (sr *solanaWebSocketRepo) StartReader(ctx context.Context) {
 	go func() {
+		// initial read deadline and pong handler
+		sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
+		sr.Websocket.SetPongHandler(func(string) error {
+			sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
+			return nil
+		})
+
 		for {
 			// read raw message
 			var rawRes json.RawMessage
@@ -76,6 +93,8 @@ func (sr *solanaWebSocketRepo) StartReader(ctx context.Context) {
 				log.Printf("Websocket read error: %v", err)
 				return
 			}
+
+			sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
 
 			// try accountSubscribe() response
 			var accountSubscribeRes domain.HeliusSubscriptionResponse
