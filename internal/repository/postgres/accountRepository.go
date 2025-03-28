@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"log"
@@ -17,7 +16,7 @@ type postgresAccountRepo struct {
 }
 
 var (
-	ErrWalletNotFound = errors.New("wallet not found")
+	ErrWalletNotFound = errors.New("wallet not found in db")
 )
 
 func NewPostgresAccountRepo(db *pgxpool.Pool) repository.AccountRepo {
@@ -26,11 +25,11 @@ func NewPostgresAccountRepo(db *pgxpool.Pool) repository.AccountRepo {
 
 // TODO: All methods here perform SQL query which get passed to the AccountService()
 func (ar *postgresAccountRepo) CheckSubscription(walletAddress string) (bool, error) {
-	query := `SELECT subscription_active FROM wallet WHERE wallet_address = $1;`
+	query := `SELECT subscription_active FROM wallets WHERE wallet_address = $1;`
 	var isActive bool
 	err := ar.db.QueryRow(context.TODO(), query, walletAddress).Scan(&isActive)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			return false, fmt.Errorf("%w: %v", ErrWalletNotFound, err)
 		}
 		return false, fmt.Errorf("db error: %w", err)
@@ -38,18 +37,16 @@ func (ar *postgresAccountRepo) CheckSubscription(walletAddress string) (bool, er
 	return isActive, nil
 }
 
-func (ar *postgresAccountRepo) CreateSubscription(walletAddress string, userId int) error {
+// TODO: This needs a wallet_id to fill to successfully insert into subscriptsions
+// This no longer needs to be a txn just normal insert
+func (ar *postgresAccountRepo) CreateSubscription(walletAddress string, userId, walletId int) error {
 	tx, err := ar.db.BeginTx(context.TODO(), pgx.TxOptions{})
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(context.TODO())
-
-	_, err = tx.Exec(context.TODO(), `INSERT into wallet(wallet_address, subscription_active) VALUES($1, TRUE);`, walletAddress)
-	if err != nil {
-		return fmt.Errorf("error inserting into wallet table: %w", err)
-	}
-	_, err = tx.Exec(context.TODO(), `INSERT into subscriptions(user_id, wallet_address) VALUES($1, $2);`, userId, walletAddress)
+	// maybe insert into wallet here?
+	_, err = tx.Exec(context.TODO(), `INSERT into subscriptions(user_id, wallet_id, wallet_address) VALUES($1, $2, $3);`, userId, walletId, walletAddress)
 	if err != nil {
 		return fmt.Errorf("error inserting into join table: %w", err)
 	}
@@ -67,9 +64,9 @@ func (ar *postgresAccountRepo) SetSubscription(walletAddress string, userId int)
 		return err
 	}
 
-	_, err = tx.Exec(context.TODO(), `UPDATE wallet SET subcription_active = TRUE WHERE wallet_address=$1;`, walletAddress)
+	_, err = tx.Exec(context.TODO(), `UPDATE wallets SET subcription_active = TRUE WHERE wallet_address=$1;`, walletAddress)
 	if err != nil {
-		return fmt.Errorf("error updating wallet state: %w", err)
+		return fmt.Errorf("error updating wallets state: %w", err)
 	}
 	_, err = tx.Exec(context.TODO(), `INSERT into subscriptions(user_id, wallet_address) VALUES($1, $2);`, userId, walletAddress)
 	if err != nil {
@@ -82,13 +79,14 @@ func (ar *postgresAccountRepo) SetSubscription(walletAddress string, userId int)
 	return nil
 }
 
-func (ar *postgresAccountRepo) CreateWallet(walletAddress string) error {
-	query := `INSERT into wallet(wallet_address) VALUES($1) ON CONFLICT (wallet_address) DO NOTHING;`
-	_, err := ar.db.Exec(context.TODO(), query, walletAddress)
+func (ar *postgresAccountRepo) CreateWallet(walletAddress string) (int, error) {
+	query := `INSERT into wallets(wallet_address, subscription_active) VALUES($1, TRUE) RETURNING id;`
+	var walletId int
+	err := ar.db.QueryRow(context.TODO(), query, walletAddress).Scan(&walletId)
 	if err != nil {
-		return fmt.Errorf("error inseting into wallet table: %w", err)
+		return -1, fmt.Errorf("error inseting into wallet table: %w", err)
 	}
-	return nil
+	return walletId, nil
 }
 
 // Removes the entry from subscription table
@@ -135,4 +133,15 @@ func (ar *postgresAccountRepo) CreateUser(userId int) error {
 		return err
 	}
 	return nil
+}
+
+// Handle no rows error?
+func (ar *postgresAccountRepo) GetUserID(telegramId int) (int, error) {
+	query := `SELECT id FROM users WHERE telegram_id = $1`
+	var userId int
+	err := ar.db.QueryRow(context.TODO(), query, telegramId).Scan(&userId)
+	if err != nil {
+		return -1, err
+	}
+	return userId, nil
 }

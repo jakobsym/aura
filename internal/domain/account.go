@@ -47,7 +47,7 @@ type Value struct {
 }
 
 type User struct {
-	UserId int `json:"user_id"`
+	TelegramId int `json:"user_id"`
 }
 
 type HeliusUnsubscribeResponse struct {

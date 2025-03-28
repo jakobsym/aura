@@ -2,6 +2,7 @@ package solana
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -17,6 +18,8 @@ import (
 type solanaWebSocketRepo struct {
 	Websocket *websocket.Conn
 	mu        sync.Mutex
+	pending   sync.Map                      // subscription responses
+	subs      []chan domain.AccountResponse // active subscriptions
 	//Accounts  []string
 }
 
@@ -43,6 +46,50 @@ func SolanaWebSocketConnection() *websocket.Conn {
 	})
 	log.Println("WebSocket conneciton established.")
 	return ws
+}
+
+func (sr *solanaWebSocketRepo) StartReader(ctx context.Context) {
+	go func() {
+		for {
+			// read raw message
+			var rawRes json.RawMessage
+			if err := sr.Websocket.ReadJSON(&rawRes); err != nil {
+				log.Printf("Websocket read error: %v", err)
+				return
+			}
+
+			// try accountSubscribe() response
+			var accountSubscribeRes domain.HeliusSubscriptionResponse
+			if err := json.Unmarshal(rawRes, &accountSubscribeRes); err != nil && accountSubscribeRes.ID != 0 {
+				if ch, ok := sr.pending.Load(accountSubscribeRes.ID); ok {
+					ch.(chan domain.HeliusSubscriptionResponse) <- accountSubscribeRes
+					sr.pending.Delete(accountSubscribeRes.ID)
+				}
+				continue
+			}
+
+			// try account notification response
+			var notif domain.AccountNotification
+			if err := json.Unmarshal(rawRes, &notif); err != nil && notif.Method == "accountNotification" {
+				res := domain.AccountResponse{
+					Context: notif.Params.Result.Context,
+					Value:   notif.Params.Result.Value,
+				}
+				sr.mu.Lock()
+				for _, sub := range sr.subs {
+					select {
+					case sub <- res:
+					default:
+						log.Println("Sub channel full, dropping notification")
+					}
+				}
+				sr.mu.Unlock()
+				continue
+			}
+			log.Printf("Unhandled message type: %s", string(rawRes))
+		}
+
+	}()
 }
 
 // TODO: Use context to handle graceful shutodwn
@@ -97,7 +144,7 @@ func (sr *solanaWebSocketRepo) AccountListen(ctx context.Context) (<-chan domain
 func (sr *solanaWebSocketRepo) AccountSubscribe(ctx context.Context, walletAddress string, userId int) error {
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
-
+	log.Printf("walletAddress=%s\nuserId=%d", walletAddress, userId)
 	msg := domain.HeliusRequest{
 		JsonRPC: "2.0",
 		ID:      userId,
@@ -111,6 +158,7 @@ func (sr *solanaWebSocketRepo) AccountSubscribe(ctx context.Context, walletAddre
 		},
 	}
 	if err := sr.Websocket.WriteJSON(msg); err != nil {
+		log.Printf("websocket WriteJSON; AccountSubscribe(): %v", err)
 		return fmt.Errorf("failed to subscribe: %w", err)
 	}
 	var subscriptionRes domain.HeliusSubscriptionResponse

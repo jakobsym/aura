@@ -40,13 +40,24 @@ func (as *AccountService) MonitorAccountSubsription(ctx context.Context) error {
 	return nil
 }
 
-func (as *AccountService) TrackWallet(walletAddress string, userId int) error {
+func (as *AccountService) TrackWallet(walletAddress string, telegramId int) error {
+	// TODO: Get id for user based on the passed in telegramId
+	userId, err := as.psqlRepo.GetUserID(telegramId)
+	if err != nil {
+		return err
+	}
 	// check if subscription active for given walletAddress
 	active, err := as.psqlRepo.CheckSubscription(walletAddress)
+	// log.Printf("subscription active: %t", active)
 	// wallet !exist
 	if err != nil {
 		if errors.Is(err, postgres.ErrWalletNotFound) {
-			if err := as.psqlRepo.CreateSubscription(walletAddress, userId); err != nil {
+			walletId, err := as.psqlRepo.CreateWallet(walletAddress)
+			if err != nil {
+				return err
+			}
+
+			if err := as.psqlRepo.CreateSubscription(walletAddress, userId, walletId); err != nil {
 				return err
 			}
 		} else {
@@ -56,6 +67,7 @@ func (as *AccountService) TrackWallet(walletAddress string, userId int) error {
 	// wallet exists, !active subscription
 	if !active {
 		if err := as.psqlRepo.SetSubscription(walletAddress, userId); err != nil {
+			log.Printf("error setting subscription: %v", err)
 			return err
 		}
 	}

@@ -25,15 +25,17 @@ type SolanaWebSocketRepo interface {
 	AccountSubscribe(ctx context.Context, walletAddress string, userId int) error
 	AccountUnsubscribe(ctx context.Context, walletAddress string, userId int) (bool, error)
 	HandleWebSocketConnection(ctx context.Context)
+	StartReader(ctx context.Context)
 }
 
 // PSQL based repo
 type AccountRepo interface {
 	CheckSubscription(walletAddress string) (bool, error)
-	CreateSubscription(walletAddress string, userId int) error
+	CreateSubscription(walletAddress string, userId, walletId int) error
 	SetSubscription(walletAddress string, userId int) error
-	CreateWallet(walletAddress string) error
+	CreateWallet(walletAddress string) (int, error)
 	RemoveSubscription(walletAddress string, userId int) (bool, error)
-	CreateUser(userId int) error
+	CreateUser(telegramId int) error
+	GetUserID(telegramId int) (int, error)
 	// DB methods
 }

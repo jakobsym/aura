@@ -9,7 +9,7 @@ vet: fmt
 	go vet ./...
 
 build: vet
-	go build -o bin/main cmd/api/main.go
+	go build -o bin/aura cmd/api/main.go
 
 clean:
 	go clean

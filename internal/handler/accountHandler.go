@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -34,8 +35,9 @@ func (ah *AccountHandler) TrackWallet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := ah.as.TrackWallet(walletAddress, user.UserId); err != nil {
-		http.Error(w, "failed to track wallet", http.StatusInternalServerError)
+	if err := ah.as.TrackWallet(walletAddress, user.TelegramId); err != nil {
+		log.Printf("failed to track wallet: %v", err)
+		http.Error(w, "error TrackWallet()", http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -57,8 +59,8 @@ func (ah *AccountHandler) UntrackWallet(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "error decoding req body", http.StatusBadRequest)
 		return
 	}
-	if err := ah.as.UntrackWallet(walletAddress, user.UserId); err != nil {
-		http.Error(w, "failed to track wallet", http.StatusInternalServerError)
+	if err := ah.as.UntrackWallet(walletAddress, user.TelegramId); err != nil {
+		http.Error(w, "failed to untrack wallet", http.StatusInternalServerError)
 		return
 	}
 
@@ -72,7 +74,7 @@ func (ah *AccountHandler) CreateUserEntry(w http.ResponseWriter, r *http.Request
 		http.Error(w, "error decoding req body", http.StatusBadRequest)
 		return
 	}
-	if err := ah.as.CreateUser(user.UserId); err != nil {
+	if err := ah.as.CreateUser(user.TelegramId); err != nil {
 		http.Error(w, "error creating user", http.StatusInternalServerError)
 		return
 	}

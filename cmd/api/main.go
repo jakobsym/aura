@@ -21,6 +21,7 @@ func main() {
 	defer wsConnection.Close()
 
 	solanaAccountRepo := solana.NewSolanaWebSocketRepo(wsConnection) // TODO: Rename `solanaWSRepo`
+	solanaAccountRepo.StartReader(context.Background())
 	accountPsqlRepo := postgres.NewPostgresAccountRepo(db)
 	solanaAccountService := service.NewAccountService(solanaAccountRepo, accountPsqlRepo)
 	accountHandler := handler.NewAccountHandler(solanaAccountService)
