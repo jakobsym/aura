@@ -24,9 +24,9 @@ type solanaWebSocketRepo struct {
 }
 
 const (
-	pongWait   = 60 * time.Second    // server waits 60s for a ping
-	pingPeriod = (pongWait * 9) / 10 // server sends ping every 54s
-	readWait   = 60 * time.Second
+	pongWait   = 45 * time.Second
+	pingPeriod = 30 * time.Second
+	readWait   = 50 * time.Second
 	writeWait  = 10 * time.Second
 )
 
@@ -41,7 +41,7 @@ func SolanaWebSocketConnection() *websocket.Conn {
 		log.Fatalf("unable to create ws connection: %v", err)
 	}
 	ws.SetPongHandler(func(string) error {
-		ws.SetReadDeadline(time.Now().Add(readWait))
+		ws.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
 	log.Println("WebSocket conneciton established.")
@@ -52,8 +52,6 @@ func (sr *solanaWebSocketRepo) HandleWebSocketConnection(ctx context.Context) {
 	pingTicker := time.NewTicker(pingPeriod)
 	defer pingTicker.Stop()
 
-	sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
-
 	go func() {
 		for {
 			select {
@@ -62,12 +60,14 @@ func (sr *solanaWebSocketRepo) HandleWebSocketConnection(ctx context.Context) {
 				// write deadling for ping
 				if err := sr.Websocket.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 					sr.mu.Unlock()
-					return
+					continue
 				}
 				// send ping
 				if err := sr.Websocket.WriteMessage(websocket.PingMessage, nil); err != nil {
-					sr.mu.Unlock()
-					return
+					log.Printf("failed to send ping: %v", err)
+				} else {
+					log.Println("Ping sent")
+					sr.Websocket.SetReadDeadline(time.Now().Add(pongWait))
 				}
 				sr.mu.Unlock()
 			case <-ctx.Done():
@@ -80,9 +80,11 @@ func (sr *solanaWebSocketRepo) HandleWebSocketConnection(ctx context.Context) {
 func (sr *solanaWebSocketRepo) StartReader(ctx context.Context) {
 	go func() {
 		// initial read deadline and pong handler
-		sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
+		//sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
+
 		sr.Websocket.SetPongHandler(func(string) error {
-			sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
+			log.Println("Received pong from server")
+			sr.Websocket.SetReadDeadline(time.Now().Add(pongWait))
 			return nil
 		})
 
@@ -94,7 +96,7 @@ func (sr *solanaWebSocketRepo) StartReader(ctx context.Context) {
 				return
 			}
 
-			sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
+			//sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
 
 			// try accountSubscribe() response
 			var accountSubscribeRes domain.HeliusSubscriptionResponse
