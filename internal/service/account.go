@@ -2,12 +2,10 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 
 	"github.com/jakobsym/aura/internal/repository"
-	"github.com/jakobsym/aura/internal/repository/postgres"
 )
 
 type AccountService struct {
@@ -41,37 +39,35 @@ func (as *AccountService) MonitorAccountSubsription(ctx context.Context) error {
 	return nil
 }
 
+// TODO: Logic here might be wrong?
+
 func (as *AccountService) TrackWallet(walletAddress string, telegramId int) error {
-	// TODO: Get id for user based on the passed in telegramId
 	userId, err := as.psqlRepo.GetUserID(telegramId)
 	if err != nil {
 		return err
 	}
-	// check if subscription active for given walletAddress
-	active, err := as.psqlRepo.CheckSubscription(walletAddress)
-	// log.Printf("subscription active: %t", active)
-	// wallet !exist
+	//log.Printf("userID: %d\n", userId)
+	walletId, err := as.psqlRepo.GetWalletID(walletAddress)
 	if err != nil {
-		if errors.Is(err, postgres.ErrWalletNotFound) {
-			walletId, err := as.psqlRepo.CreateWallet(walletAddress)
-			if err != nil {
-				return err
-			}
+		return err
+	}
+	//log.Printf("walletID: %d\n", walletId)
+	active, err := as.psqlRepo.CheckSubscription(walletId)
+	if err != nil {
+		return err
+	}
+	//log.Printf("walletID: %d | activity_status: %t\n", walletId, active)
 
-			if err := as.psqlRepo.CreateSubscription(walletAddress, userId, walletId); err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
-	}
-	// wallet exists, !active subscription
 	if !active {
-		if err := as.psqlRepo.SetSubscription(walletAddress, userId); err != nil {
-			log.Printf("error setting subscription: %v", err)
+		err := as.psqlRepo.SetWalletActive(walletId)
+		if err != nil {
+			return err
+		}
+		if err := as.psqlRepo.CreateSubscription(walletAddress, userId, walletId); err != nil {
 			return err
 		}
 	}
+
 	return as.solanaRepo.AccountSubscribe(context.TODO(), walletAddress, userId)
 }
 

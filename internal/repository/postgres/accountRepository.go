@@ -24,10 +24,10 @@ func NewPostgresAccountRepo(db *pgxpool.Pool) repository.AccountRepo {
 }
 
 // TODO: All methods here perform SQL query which get passed to the AccountService()
-func (ar *postgresAccountRepo) CheckSubscription(walletAddress string) (bool, error) {
-	query := `SELECT subscription_active FROM wallets WHERE wallet_address = $1;`
+func (ar *postgresAccountRepo) CheckSubscription(walletId int) (bool, error) {
+	query := `SELECT subscription_active FROM wallets WHERE id = $1;`
 	var isActive bool
-	err := ar.db.QueryRow(context.TODO(), query, walletAddress).Scan(&isActive)
+	err := ar.db.QueryRow(context.TODO(), query, walletId).Scan(&isActive)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return false, fmt.Errorf("%w: %v", ErrWalletNotFound, err)
@@ -57,25 +57,13 @@ func (ar *postgresAccountRepo) CreateSubscription(walletAddress string, userId, 
 	return nil
 }
 
-func (ar *postgresAccountRepo) SetSubscription(walletAddress string, userId int) error {
-	tx, err := ar.db.BeginTx(context.TODO(), pgx.TxOptions{})
-	defer tx.Rollback(context.TODO())
+func (ar *postgresAccountRepo) SetSubscription(walletAddress string, userId, walletId int) error {
+	query := `INSERT into subscriptions(user_id, wallet_id, wallet_address) VALUES ($1, $2, $3);`
+	_, err := ar.db.Exec(context.TODO(), query, userId, walletId, walletAddress)
 	if err != nil {
-		return err
+		return fmt.Errorf("error inserting into join table: %v", err)
 	}
-
-	_, err = tx.Exec(context.TODO(), `UPDATE wallets SET subcription_active = TRUE WHERE wallet_address=$1;`, walletAddress)
-	if err != nil {
-		return fmt.Errorf("error updating wallets state: %w", err)
-	}
-	_, err = tx.Exec(context.TODO(), `INSERT into subscriptions(user_id, wallet_address) VALUES($1, $2);`, userId, walletAddress)
-	if err != nil {
-		return fmt.Errorf("error inserting into join table: %w", err)
-	}
-	if err := tx.Commit(context.TODO()); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-	log.Printf("subscription set for: %d", userId)
+	log.Printf("subscription set for userID: %d | walletID: %d", userId, walletId)
 	return nil
 }
 
@@ -144,4 +132,40 @@ func (ar *postgresAccountRepo) GetUserID(telegramId int) (int, error) {
 		return -1, err
 	}
 	return userId, nil
+}
+
+// Using Upsert
+// if not found then create
+func (ar *postgresAccountRepo) GetWalletID(walletAddress string) (int, error) {
+	tx, err := ar.db.BeginTx(context.TODO(), pgx.TxOptions{})
+	defer tx.Rollback(context.TODO())
+	if err != nil {
+		return -1, fmt.Errorf("error creating transaction -> GetWalletID(): %v", err)
+	}
+	var walletId int
+	err = tx.QueryRow(context.TODO(), `SELECT id from wallets where wallet_address=$1;`, walletAddress).Scan(&walletId)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			err = tx.QueryRow(context.TODO(), `INSERT into wallets(wallet_address) VALUES($1) RETURNING id;`, walletAddress).Scan(&walletId)
+			if err != nil {
+				return -1, fmt.Errorf("\nerror inserting wallet")
+			}
+		} else {
+			return -1, fmt.Errorf("\nerror querying wallets table")
+		}
+	}
+	if err := tx.Commit(context.TODO()); err != nil {
+		return -1, fmt.Errorf("failed to execute transaction -> GetWalletID(): %v", err)
+	}
+
+	return walletId, nil
+}
+
+func (ar *postgresAccountRepo) SetWalletActive(walletId int) error {
+	query := `UPDATE wallets SET subscription_active = TRUE WHERE id = $1;`
+	_, err := ar.db.Exec(context.TODO(), query, walletId)
+	if err != nil {
+		return fmt.Errorf("error executing update -> SetWalletActive(): %v", err)
+	}
+	return nil
 }

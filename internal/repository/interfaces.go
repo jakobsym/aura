@@ -31,12 +31,14 @@ type SolanaWebSocketRepo interface {
 
 // PSQL based repo
 type AccountRepo interface {
-	CheckSubscription(walletAddress string) (bool, error)
+	CheckSubscription(walletId int) (bool, error)
 	CreateSubscription(walletAddress string, userId, walletId int) error
-	SetSubscription(walletAddress string, userId int) error
+	SetSubscription(walletAddress string, userId, walletId int) error
 	CreateWallet(walletAddress string) (int, error)
 	RemoveSubscription(walletAddress string, userId int) (bool, error)
 	CreateUser(telegramId int) error
 	GetUserID(telegramId int) (int, error)
+	GetWalletID(walletAddress string) (int, error)
+	SetWalletActive(walletId int) error
 	// DB methods
 }
