@@ -18,8 +18,8 @@ import (
 type solanaWebSocketRepo struct {
 	Websocket *websocket.Conn
 	mu        sync.Mutex
-	pending   sync.Map                      // subscription responses
-	subs      []chan domain.AccountResponse // active subscriptions
+	pending   sync.Map                        // subscription responses
+	subs      []chan domain.HeliusLogResponse // active subscriptions
 	//Accounts  []string
 }
 
@@ -108,17 +108,13 @@ func (sr *solanaWebSocketRepo) StartReader(ctx context.Context) {
 				continue
 			}
 
-			// try account notification response
-			var notif domain.AccountNotification
-			if err := json.Unmarshal(rawRes, &notif); err != nil && notif.Method == "accountNotification" {
-				res := domain.AccountResponse{
-					Context: notif.Params.Result.Context,
-					Value:   notif.Params.Result.Value,
-				}
+			//			log.Printf("Unhandled message type: %s", string(rawRes))
+			var logResponse domain.HeliusLogResponse
+			if err := json.Unmarshal([]byte(rawRes), &logResponse); err != nil && logResponse.Method == "logsNotification" {
 				sr.mu.Lock()
 				for _, sub := range sr.subs {
 					select {
-					case sub <- res:
+					case sub <- logResponse:
 					default:
 						log.Println("Sub channel full, dropping notification")
 					}
@@ -126,21 +122,22 @@ func (sr *solanaWebSocketRepo) StartReader(ctx context.Context) {
 				sr.mu.Unlock()
 				continue
 			}
-			log.Printf("Unhandled message type: %s", string(rawRes))
+			//txnSignature := logResponse.Params.Result.Value.Signature
+
 		}
 
 	}()
 }
 
-func (sr *solanaWebSocketRepo) AccountListen(ctx context.Context) (<-chan domain.AccountResponse, error) {
-	updates := make(chan domain.AccountResponse, 10)
+func (sr *solanaWebSocketRepo) AccountListen(ctx context.Context) (<-chan domain.HeliusLogResponse, error) {
+	updates := make(chan domain.HeliusLogResponse, 10)
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
 	sr.subs = append(sr.subs, updates)
 	return updates, nil
 }
 
-func (sr *solanaWebSocketRepo) StopAccountListen(ch <-chan domain.AccountResponse) {
+func (sr *solanaWebSocketRepo) StopAccountListen(ch <-chan domain.HeliusLogResponse) {
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
 	for i, sub := range sr.subs {
@@ -187,6 +184,44 @@ func (sr *solanaWebSocketRepo) AccountSubscribe(ctx context.Context, walletAddre
 	case <-ctx.Done():
 		return fmt.Errorf("context cancelled while awaiting subscription response")
 	}
+}
+
+func (sr *solanaWebSocketRepo) LogsSubscribe(ctx context.Context, walletAddress string, userId int) error {
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+	msg := domain.HeliusRequest{
+		JsonRPC: "2.0",
+		ID:      userId,
+		Method:  "logsSubscribe",
+		Params: []any{
+			domain.LogsSubscribeParams{
+				Mentions: []string{walletAddress},
+			},
+			domain.CommitmentConfig{
+				Commitment: "finalized",
+			},
+		},
+	}
+
+	responseCh := make(chan domain.HeliusSubscriptionResponse, 1)
+	sr.pending.Store(msg.ID, responseCh)
+	defer sr.pending.Delete(msg.ID)
+	if err := sr.Websocket.WriteJSON(msg); err != nil {
+		return fmt.Errorf("failed to send logsSubscription request: %w", err)
+	}
+	select {
+	case res := <-responseCh:
+		if res.Error != nil {
+			return fmt.Errorf("subscription error: %v", res.Error.Message)
+		}
+		log.Printf("Subscribed to %s | ID: %d\n", walletAddress, res.Result)
+		return nil
+	case <-time.After(30 * time.Second):
+		return fmt.Errorf("subscription timeout")
+	case <-ctx.Done():
+		return fmt.Errorf("context cancelled while awaiting subscription response")
+	}
+
 }
 
 // TODO: Fix to follow AccountSubscribe()

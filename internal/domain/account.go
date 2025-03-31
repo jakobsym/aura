@@ -1,10 +1,18 @@
 package domain
 
 type HeliusRequest struct {
-	JsonRPC string      `json:"jsonrpc"`
-	ID      int         `json:"id"`
-	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
+	JsonRPC string `json:"jsonrpc"`
+	ID      int    `json:"id"`
+	Method  string `json:"method"`
+	Params  any    `json:"params"`
+}
+
+type LogsSubscribeParams struct {
+	Mentions []string `json:"mentions"`
+}
+
+type CommitmentConfig struct {
+	Commitment string `json:"commitment"`
 }
 
 type AccountNotification struct {
@@ -27,6 +35,48 @@ type HeliusSubscriptionResponse struct {
 		Code    int    `json:"code"`
 		Message string `json:"message"`
 	} `json:"error,omitempty"`
+}
+
+type HeliusLogResponse struct {
+	JsonRPC string `json:"jsonrpc"`
+	Method  string `json:"method"`
+	Params  struct {
+		Result struct {
+			Value struct {
+				Signature string   `json:"signature"`
+				Logs      []string `json:"logs"`
+			} `json:"value"`
+		} `json:"result"`
+		Subscription int `json:"subscription"`
+	} `json:"params"`
+}
+
+type HeliusTransaction struct {
+	Description string `json:"description"`
+	Type        string `json:"type"`
+	Source      string `json:"source"`
+	Fee         int64  `json:"fee"`
+	Timestamp   int64  `json:"timestamp"`
+	Events      struct {
+		Swap []SwapEvent `json:"swap"`
+	} `json:"events"`
+}
+
+type SwapEvent struct {
+	TokenIn     TokenInfo `json:"tokenIn"`
+	TokenOut    TokenInfo `json:"tokenOut"`
+	AmountIn    string    `json:"amountIn"`
+	AmountOut   string    `json:"amountOut"`
+	Source      string    `json:"source"`
+	SourceLabel string    `json:"sourceLabel"`
+}
+
+type TokenInfo struct {
+	Symbol    string `json:"symbol"`
+	Address   string `json:"address"`
+	Amount    string `json:"amount"`
+	Decimals  int    `json:"decimals"`
+	TokenName string `json:"tokenName"`
 }
 
 type AccountResponse struct {

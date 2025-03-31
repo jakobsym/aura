@@ -68,7 +68,7 @@ func (as *AccountService) TrackWallet(walletAddress string, telegramId int) erro
 		}
 	}
 
-	return as.solanaRepo.AccountSubscribe(context.TODO(), walletAddress, userId)
+	return as.solanaRepo.LogsSubscribe(context.TODO(), walletAddress, userId)
 }
 
 func (as *AccountService) UntrackWallet(walletAddress string, userId int) error {

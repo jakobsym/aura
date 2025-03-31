@@ -21,8 +21,9 @@ type SolanaTokenRepo interface {
 
 // RPC WS based repo
 type SolanaWebSocketRepo interface {
-	AccountListen(ctx context.Context) (<-chan domain.AccountResponse, error)
-	StopAccountListen(<-chan domain.AccountResponse)
+	AccountListen(ctx context.Context) (<-chan domain.HeliusLogResponse, error)
+	StopAccountListen(<-chan domain.HeliusLogResponse)
+	LogsSubscribe(ctx context.Context, walletAddress string, userId int) error
 	AccountSubscribe(ctx context.Context, walletAddress string, userId int) error
 	AccountUnsubscribe(ctx context.Context, walletAddress string, userId int) (bool, error)
 	HandleWebSocketConnection(ctx context.Context)
