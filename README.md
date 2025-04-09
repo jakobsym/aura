@@ -33,7 +33,7 @@ flowchart TD
     WEB <--> |HTTP Requests/Responses| API
     API <--> |Query/Insert/Delete| DB
     
-    EXTRACT --> |Batch Data| RPC
+    EXTRACT --> || RPC
     EXTRACT --> |Real-time Stream| BC_WS
     LOAD --> |Persist Data| DB
     
