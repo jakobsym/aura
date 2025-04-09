@@ -11,8 +11,10 @@ flowchart TD
     end
 
     subgraph Backend[Backend Service]
-        subgraph ETL[ETL Pipeline]
-            EXTRACT[Extract] --> TRANSFORM[Transform] --> LOAD[Load]
+        subgraph ETL[Pipeline]
+            EXTRACT[Extract] --> TRANSFORM[Transform]
+            TRANSFORM --> |Load to DB| LOAD_DB[Load]
+            TRANSFORM --> |Load to HTTP Server| LOAD_HTTP[Load]
         end
         
         subgraph HTTP_SERVER[HTTP Server]
@@ -26,17 +28,18 @@ flowchart TD
 
     subgraph Blockchain[Solana Network]
         RPC[RPC Node]
-        BC_WS[Blockchain WebSocket]
+        BC_WS[WebSocket Connection]
     end
 
     %% Data Flows
     WEB <--> |HTTP Requests/Responses| API
-    API <--> |Query/Insert/Delete| DB
+    API <--> |Query Data| DB
     
     EXTRACT --> RPC
     EXTRACT --> |Real-time Stream| BC_WS
-    LOAD --> |Persist Data| DB
-    
+    LOAD_DB --> |Persist Data| DB
+    LOAD_HTTP --> |Real-time Updates| API
+
     %% Styling
     classDef frontend fill:#7CB9E8,stroke:#4682B4,stroke-width:2px,color:white
     classDef backend fill:#98FB98,stroke:#3CB371,stroke-width:2px,color:#333
@@ -48,7 +51,7 @@ flowchart TD
     class WEB frontend
     class API backend
     class HTTP_SERVER server
-    class EXTRACT,TRANSFORM,LOAD etl
+    class EXTRACT,TRANSFORM,LOAD_DB,LOAD_HTTP etl
     class RPC,BC_WS blockchain
     class DB database
 ```
