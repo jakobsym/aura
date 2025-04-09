@@ -105,3 +105,37 @@ type HeliusUnsubscribeResponse struct {
 	Result  bool   `json:"result"`
 	ID      int    `json:"id"`
 }
+
+type TransactionResult struct {
+	Result struct {
+		Meta struct {
+			PreTokenBalances  []TokenBalance `json:"preTokenBalances"`
+			PostTokenBalances []TokenBalance `json:"postTokenBalances"`
+		} `json:"meta"`
+		Transaction struct {
+			Message struct {
+				AccountKeys []string `json:"accountKeys"`
+			} `json:"message"`
+		} `json:"transaction"`
+	} `json:"result"`
+}
+
+type UITokenAmount struct {
+	UIAmount float64 `json:"uiAmount"`
+}
+
+type TokenBalance struct {
+	AccountIndex  int           `json:"accountIndex"`
+	Mint          string        `json:"mint"`
+	Owner         string        `json:"owner"`
+	UITokenAmount UITokenAmount `json:"uiTokenAmount"`
+}
+
+type SwapResult struct {
+	SentAmount      float64 `json:"sentAmount"`
+	SentSymbol      string  `json:"sentSymbol"`
+	SentAddress     string  `json:"sentAddress"`
+	ReceivedAddress string  `json:"receivedAddress"`
+	ReceivedAmount  float64 `json:"receivedAmount"`
+	ReceivedSymbol  string  `json:"receivedSymbol"`
+}

@@ -28,6 +28,8 @@ type SolanaWebSocketRepo interface {
 	AccountUnsubscribe(ctx context.Context, walletAddress string, userId int) (bool, error)
 	HandleWebSocketConnection(ctx context.Context)
 	StartReader(ctx context.Context)
+	GetTxnData(signature string) (domain.TransactionResult, error)
+	GetTxnSwapData(payload domain.TransactionResult) ([]domain.SwapResult, error)
 }
 
 // PSQL based repo
