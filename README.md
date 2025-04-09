@@ -11,10 +11,13 @@ flowchart TD
     end
 
     subgraph Backend[Backend Service]
+        subgraph ETL[ETL Pipeline]
+            EXTRACT[Extract] --> TRANSFORM[Transform] --> LOAD[Load]
+        end
+        
         subgraph HTTP_SERVER[HTTP Server]
             API[REST Endpoints]
         end
-        MONITOR[Transaction Monitor]
     end
 
     subgraph Database[Database]
@@ -26,26 +29,26 @@ flowchart TD
         BC_WS[Blockchain WebSocket]
     end
 
-    %% Bi-directional Flows
-    WEB <--> |HTTP Req/Res| API
-    API <--> DB
-    RPC --> API
-    MONITOR <--> BC_WS
-    MONITOR --> DB
-    API --> MONITOR
-
-    %% Modern, softer color palette
+    %% Data Flows
+    WEB <--> |HTTP Requests/Responses| API
+    API <--> |Query/Insert/Delete| DB
+    
+    EXTRACT --> |Batch Data| RPC
+    EXTRACT --> |Real-time Stream| BC_WS
+    LOAD --> |Persist Data| DB
+    
+    %% Styling
     classDef frontend fill:#7CB9E8,stroke:#4682B4,stroke-width:2px,color:white
     classDef backend fill:#98FB98,stroke:#3CB371,stroke-width:2px,color:#333
     classDef blockchain fill:#FFB6C1,stroke:#DB7093,stroke-width:2px,color:#333
     classDef database fill:#FFA07A,stroke:#FF8C00,stroke-width:1px,color:#333
+    classDef etl fill:#DDA0DD,stroke:#9400D3,stroke-width:2px,color:#333
     classDef server fill:#B0C4DE,stroke:#4169E1,stroke-width:4px,color:#333
-   
 
-    class WEB,API,MONITOR,DB,RPC,BC_WS uniform
     class WEB frontend
-    class API,MONITOR backend
+    class API backend
     class HTTP_SERVER server
+    class EXTRACT,TRANSFORM,LOAD etl
     class RPC,BC_WS blockchain
     class DB database
 ```
