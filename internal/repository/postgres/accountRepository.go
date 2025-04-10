@@ -23,7 +23,6 @@ func NewPostgresAccountRepo(db *pgxpool.Pool) repository.AccountRepo {
 	return &postgresAccountRepo{db: db}
 }
 
-// TODO: All methods here perform SQL query which get passed to the AccountService()
 func (ar *postgresAccountRepo) CheckSubscription(walletId int) (bool, error) {
 	query := `SELECT subscription_active FROM wallets WHERE id = $1;`
 	var isActive bool
@@ -37,7 +36,6 @@ func (ar *postgresAccountRepo) CheckSubscription(walletId int) (bool, error) {
 	return isActive, nil
 }
 
-// TODO: This needs a wallet_id to fill to successfully insert into subscriptsions
 // This no longer needs to be a txn just normal insert
 func (ar *postgresAccountRepo) CreateSubscription(walletAddress string, userId, walletId int) error {
 	tx, err := ar.db.BeginTx(context.TODO(), pgx.TxOptions{})
@@ -65,16 +63,6 @@ func (ar *postgresAccountRepo) SetSubscription(walletAddress string, userId, wal
 	}
 	log.Printf("subscription set for userID: %d | walletID: %d", userId, walletId)
 	return nil
-}
-
-func (ar *postgresAccountRepo) CreateWallet(walletAddress string) (int, error) {
-	query := `INSERT into wallets(wallet_address, subscription_active) VALUES($1, TRUE) RETURNING id;`
-	var walletId int
-	err := ar.db.QueryRow(context.TODO(), query, walletAddress).Scan(&walletId)
-	if err != nil {
-		return -1, fmt.Errorf("error inseting into wallet table: %w", err)
-	}
-	return walletId, nil
 }
 
 // Removes the entry from subscription table
@@ -113,25 +101,14 @@ func (ar *postgresAccountRepo) RemoveSubscription(walletAddress string, userId i
 	return userCount > 0, nil
 }
 
-// Note: you can only use ON CONFLICT if your column has a UNIQUE constraint
-func (ar *postgresAccountRepo) CreateUser(userId int) error {
-	query := `INSERT into users(telegram_id) VALUES($1);`
-	_, err := ar.db.Exec(context.TODO(), query, userId)
+func (ar *postgresAccountRepo) CreateWallet(walletAddress string) (int, error) {
+	query := `INSERT into wallets(wallet_address, subscription_active) VALUES($1, TRUE) RETURNING id;`
+	var walletId int
+	err := ar.db.QueryRow(context.TODO(), query, walletAddress).Scan(&walletId)
 	if err != nil {
-		return err
+		return -1, fmt.Errorf("error inseting into wallet table: %w", err)
 	}
-	return nil
-}
-
-// Handle no rows error?
-func (ar *postgresAccountRepo) GetUserID(telegramId int) (int, error) {
-	query := `SELECT id FROM users WHERE telegram_id = $1`
-	var userId int
-	err := ar.db.QueryRow(context.TODO(), query, telegramId).Scan(&userId)
-	if err != nil {
-		return -1, err
-	}
-	return userId, nil
+	return walletId, nil
 }
 
 // Using Upsert
@@ -168,4 +145,23 @@ func (ar *postgresAccountRepo) SetWalletActive(walletId int) error {
 		return fmt.Errorf("error executing update -> SetWalletActive(): %v", err)
 	}
 	return nil
+}
+
+func (ar *postgresAccountRepo) CreateUser(userId int) error {
+	query := `INSERT into users(telegram_id) VALUES($1);`
+	_, err := ar.db.Exec(context.TODO(), query, userId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ar *postgresAccountRepo) GetUserID(telegramId int) (int, error) {
+	query := `SELECT id FROM users WHERE telegram_id = $1`
+	var userId int
+	err := ar.db.QueryRow(context.TODO(), query, telegramId).Scan(&userId)
+	if err != nil {
+		return -1, err
+	}
+	return userId, nil
 }

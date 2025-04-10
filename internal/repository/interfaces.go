@@ -43,5 +43,4 @@ type AccountRepo interface {
 	GetUserID(telegramId int) (int, error)
 	GetWalletID(walletAddress string) (int, error)
 	SetWalletActive(walletId int) error
-	// DB methods
 }

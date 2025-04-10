@@ -15,18 +15,6 @@ type CommitmentConfig struct {
 	Commitment string `json:"commitment"`
 }
 
-type AccountNotification struct {
-	JsonRPC string `json:"jsonrpc"`
-	Method  string `json:"method"`
-	Params  struct {
-		Result struct {
-			Context Context `json:"context"`
-			Value   Value   `json:"value"`
-		} `json:"result"`
-		Subscription int `json:"subscription"`
-	} `json:"params"`
-}
-
 type HeliusSubscriptionResponse struct {
 	JsonRPC string `json:"jsonrpc"`
 	Result  int    `json:"result"`
@@ -51,59 +39,8 @@ type HeliusLogResponse struct {
 	} `json:"params"`
 }
 
-type HeliusTransaction struct {
-	Description string `json:"description"`
-	Type        string `json:"type"`
-	Source      string `json:"source"`
-	Fee         int64  `json:"fee"`
-	Timestamp   int64  `json:"timestamp"`
-	Events      struct {
-		Swap []SwapEvent `json:"swap"`
-	} `json:"events"`
-}
-
-type SwapEvent struct {
-	TokenIn     TokenInfo `json:"tokenIn"`
-	TokenOut    TokenInfo `json:"tokenOut"`
-	AmountIn    string    `json:"amountIn"`
-	AmountOut   string    `json:"amountOut"`
-	Source      string    `json:"source"`
-	SourceLabel string    `json:"sourceLabel"`
-}
-
-type TokenInfo struct {
-	Symbol    string `json:"symbol"`
-	Address   string `json:"address"`
-	Amount    string `json:"amount"`
-	Decimals  int    `json:"decimals"`
-	TokenName string `json:"tokenName"`
-}
-
-type AccountResponse struct {
-	Context Context `json:"context"`
-	Value   Value   `json:"value"`
-}
-
-type Context struct {
-	Slot uint64 `json:"slot"`
-}
-
-type Value struct {
-	Data       interface{} `json:"data"`
-	Executable bool        `json:"executable"`
-	Lamports   uint64      `json:"lamports"`
-	Owner      string      `json:"owner"`
-	RentEpoch  uint64      `json:"rentEpoch"`
-}
-
 type User struct {
 	TelegramId int `json:"user_id"`
-}
-
-type HeliusUnsubscribeResponse struct {
-	JsonRPC string `json:"jsonrpc"`
-	Result  bool   `json:"result"`
-	ID      int    `json:"id"`
 }
 
 type TransactionResult struct {
@@ -138,4 +75,46 @@ type SwapResult struct {
 	ReceivedAddress string  `json:"receivedAddress"`
 	ReceivedAmount  float64 `json:"receivedAmount"`
 	ReceivedSymbol  string  `json:"receivedSymbol"`
+}
+
+/*
+** deprecated **
+ */
+type HeliusUnsubscribeResponse struct {
+	JsonRPC string `json:"jsonrpc"`
+	Result  bool   `json:"result"`
+	ID      int    `json:"id"`
+}
+
+/*
+** deprecated **
+ */
+type Value struct {
+	Data       interface{} `json:"data"`
+	Executable bool        `json:"executable"`
+	Lamports   uint64      `json:"lamports"`
+	Owner      string      `json:"owner"`
+	RentEpoch  uint64      `json:"rentEpoch"`
+}
+
+/*
+** deprecated **
+ */
+type Context struct {
+	Slot uint64 `json:"slot"`
+}
+
+/*
+** deprecated **
+ */
+type AccountNotification struct {
+	JsonRPC string `json:"jsonrpc"`
+	Method  string `json:"method"`
+	Params  struct {
+		Result struct {
+			Context Context `json:"context"`
+			Value   Value   `json:"value"`
+		} `json:"result"`
+		Subscription int `json:"subscription"`
+	} `json:"params"`
 }

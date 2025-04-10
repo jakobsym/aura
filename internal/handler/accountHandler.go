@@ -18,9 +18,6 @@ func NewAccountHandler(as *service.AccountService) *AccountHandler {
 	return &AccountHandler{as: as}
 }
 
-// req/res related methods
-// get results from account service and send them out
-
 // I.E: Using TG API to send live updates back to TG
 func (ah *AccountHandler) TrackWallet(w http.ResponseWriter, r *http.Request) {
 	walletAddress := chi.URLParam(r, "wallet_address")
@@ -42,8 +39,20 @@ func (ah *AccountHandler) TrackWallet(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode("success")
-	// checks DB if wallet is already being tracked
-	// if not create new entry for this wallet
+}
+
+func (ah *AccountHandler) CreateUserEntry(w http.ResponseWriter, r *http.Request) {
+	var user domain.User
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		http.Error(w, "error decoding req body", http.StatusBadRequest)
+		return
+	}
+	if err := ah.as.CreateUser(user.TelegramId); err != nil {
+		http.Error(w, "error creating user", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode("success")
 }
 
 // TODO: `UntrackWallet() not implemented`
@@ -66,22 +75,4 @@ func (ah *AccountHandler) UntrackWallet(w http.ResponseWriter, r *http.Request) 
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode("success")
-}
-
-func (ah *AccountHandler) CreateUserEntry(w http.ResponseWriter, r *http.Request) {
-	var user domain.User
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		http.Error(w, "error decoding req body", http.StatusBadRequest)
-		return
-	}
-	if err := ah.as.CreateUser(user.TelegramId); err != nil {
-		http.Error(w, "error creating user", http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode("success")
-}
-
-func (ah *AccountHandler) GetWalletUpdates(w http.ResponseWriter, r *http.Request) {
-	// as updates arrive, dispatch them to telegram
 }

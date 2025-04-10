@@ -40,5 +40,3 @@ func PostgresConnectionPool() *pgxpool.Pool {
 	log.Printf("connected to db")
 	return dbpool
 }
-
-// PSQL Queries for a Token table that implement the repository

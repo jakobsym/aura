@@ -228,7 +228,6 @@ func (sr *solanaWebSocketRepo) GetTxnData(signature string) (domain.TransactionR
 	return payload, nil
 }
 
-// TODO: Not working as intended, currently returns empty array
 func (sr *solanaWebSocketRepo) GetTxnSwapData(payload domain.TransactionResult) ([]domain.SwapResult, error) {
 	userWalletAddress := payload.Result.Transaction.Message.AccountKeys[0]
 	balanceMap := make(map[int]map[string]domain.TokenBalance)
@@ -326,25 +325,6 @@ func (sr *solanaWebSocketRepo) GetTokenNameAndSymbol(ctx context.Context, tokenA
 	return []string{name, symbol}, nil
 }
 
-// TODO: Fix to follow AccountSubscribe()
-func (sr *solanaWebSocketRepo) AccountUnsubscribe(ctx context.Context, walletAddress string, userId int) (bool, error) {
-	sr.mu.Lock()
-	defer sr.mu.Unlock()
-
-	msg := domain.HeliusRequest{
-		JsonRPC: "2.0",
-		ID:      userId,
-		Method:  "accountUnsubscribe",
-	}
-	if err := sr.Websocket.WriteJSON(msg); err != nil {
-		return false, fmt.Errorf("failed to send msg to ws: %w", err)
-	}
-	var unsubscribeResponse domain.HeliusUnsubscribeResponse
-	if err := sr.Websocket.ReadJSON(&unsubscribeResponse); err != nil {
-		return false, fmt.Errorf("failed to read msg to ws: %w", err)
-	}
-	return unsubscribeResponse.Result, nil
-}
 func (sr *solanaWebSocketRepo) AccountListen(ctx context.Context) (<-chan domain.HeliusLogResponse, error) {
 	updates := make(chan domain.HeliusLogResponse, 10)
 	sr.mu.Lock()
@@ -365,6 +345,31 @@ func (sr *solanaWebSocketRepo) StopAccountListen(ch <-chan domain.HeliusLogRespo
 	}
 }
 
+/*
+ ** Deprecated **
+ */
+func (sr *solanaWebSocketRepo) AccountUnsubscribe(ctx context.Context, walletAddress string, userId int) (bool, error) {
+	sr.mu.Lock()
+	defer sr.mu.Unlock()
+
+	msg := domain.HeliusRequest{
+		JsonRPC: "2.0",
+		ID:      userId,
+		Method:  "accountUnsubscribe",
+	}
+	if err := sr.Websocket.WriteJSON(msg); err != nil {
+		return false, fmt.Errorf("failed to send msg to ws: %w", err)
+	}
+	var unsubscribeResponse domain.HeliusUnsubscribeResponse
+	if err := sr.Websocket.ReadJSON(&unsubscribeResponse); err != nil {
+		return false, fmt.Errorf("failed to read msg to ws: %w", err)
+	}
+	return unsubscribeResponse.Result, nil
+}
+
+/*
+ ** Deprecated **
+ */
 func (sr *solanaWebSocketRepo) AccountSubscribe(ctx context.Context, walletAddress string, userId int) error {
 	sr.mu.Lock()
 	defer sr.mu.Unlock()

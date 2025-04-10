@@ -27,7 +27,6 @@ func (r *Router) LoadRoutes() *chi.Mux {
 
 func (r *Router) tokenRoutes(router chi.Router) {
 	router.Get("/{token_address}", r.tokenHandler.GetTokenDetails)
-	// rest of token handler functions
 }
 
 func (r *Router) accountRoutes(router chi.Router) {

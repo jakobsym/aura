@@ -17,12 +17,8 @@ func NewAccountService(sr repository.SolanaWebSocketRepo, pr repository.AccountR
 	return &AccountService{solanaRepo: sr, psqlRepo: pr}
 }
 
-// TODO: Here is where you will relay updates to users that have subscribed to the respective accounts/walletAddresses?
-// using the TG api
-// within the response the ID is returned which can be used to map the response to the respective user
 func (as *AccountService) MonitorAccountSubsription(ctx context.Context) error {
 	as.solanaRepo.HandleWebSocketConnection(ctx)
-	// websocket data
 	updates, err := as.solanaRepo.AccountListen(ctx)
 	if err != nil {
 		return fmt.Errorf("service listen error: %v", err)
@@ -38,8 +34,6 @@ func (as *AccountService) MonitorAccountSubsription(ctx context.Context) error {
 
 	return nil
 }
-
-// TODO: Logic here might be wrong?
 
 func (as *AccountService) TrackWallet(walletAddress string, telegramId int) error {
 	userId, err := as.psqlRepo.GetUserID(telegramId)
@@ -57,7 +51,6 @@ func (as *AccountService) TrackWallet(walletAddress string, telegramId int) erro
 		return err
 	}
 	//log.Printf("walletID: %d | activity_status: %t\n", walletId, active)
-
 	if !active {
 		err := as.psqlRepo.SetWalletActive(walletId)
 		if err != nil {
