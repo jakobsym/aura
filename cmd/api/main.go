@@ -21,15 +21,13 @@ func main() {
 	defer wsConnection.Close()
 
 	solanaAccountRepo := solana.NewSolanaWebSocketRepo(wsConnection)
-	solanaAccountRepo.StartReader(context.Background()) // setup generalized reader for WS connection
+	solanaAccountRepo.StartReader(context.Background()) // generalized reader for WS connection
 	accountPsqlRepo := postgres.NewPostgresAccountRepo(db)
-
 	solanaAccountService := service.NewAccountService(solanaAccountRepo, accountPsqlRepo)
 	accountHandler := handler.NewAccountHandler(solanaAccountService)
 
 	solanaTokenRepo := solana.NewSolanaTokenRepo(rpcConnection)
 	tokenPsqlRepo := postgres.NewPostgresTokenRepo(db)
-
 	tokenService := service.NewTokenService(tokenPsqlRepo, solanaTokenRepo)
 	tokenHandler := handler.NewTokenHandler(tokenService)
 

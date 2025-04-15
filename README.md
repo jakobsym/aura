@@ -11,7 +11,7 @@ flowchart TD
     end
 
     subgraph Backend[Backend Service]
-        subgraph ETL[Pipeline]
+        subgraph ETL[Pseudo Pipeline]
             EXTRACT[Extract] --> TRANSFORM[Transform]
             TRANSFORM --> |Load to DB| LOAD_DB[Load]
             TRANSFORM --> |Load to HTTP Server| LOAD_HTTP[Load]

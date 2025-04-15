@@ -1,3 +1,4 @@
+// Package `postgres` provides implementations of respository interfaces using PostgreSQL.
 package postgres
 
 import (
@@ -11,18 +12,24 @@ import (
 	"github.com/jakobsym/aura/internal/repository"
 )
 
+// `postgresAccountRepo` implements the respository.AccountRepo interface using PostgreSQL
 type postgresAccountRepo struct {
 	db *pgxpool.Pool
 }
 
 var (
+	// `ErrWalletNotFound` returned when requested wallet is not found in the DB
 	ErrWalletNotFound = errors.New("wallet not found in db")
 )
 
+// `NewPostgresAccountRepo` creates and returns a new PostgreSQL implementation
+// of the AccountRepo interface.
 func NewPostgresAccountRepo(db *pgxpool.Pool) repository.AccountRepo {
 	return &postgresAccountRepo{db: db}
 }
 
+// `CheckSubscription` verifies if a subscription is active for a given walletId
+// Returns True if subscription is active, False otherwise
 func (ar *postgresAccountRepo) CheckSubscription(walletId int) (bool, error) {
 	query := `SELECT subscription_active FROM wallets WHERE id = $1;`
 	var isActive bool
@@ -36,26 +43,8 @@ func (ar *postgresAccountRepo) CheckSubscription(walletId int) (bool, error) {
 	return isActive, nil
 }
 
-// This no longer needs to be a txn just normal insert
+// `CreateSubsciption` adds a new subscription record creating a (user - wallet) connection
 func (ar *postgresAccountRepo) CreateSubscription(walletAddress string, userId, walletId int) error {
-	tx, err := ar.db.BeginTx(context.TODO(), pgx.TxOptions{})
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(context.TODO())
-	// maybe insert into wallet here?
-	_, err = tx.Exec(context.TODO(), `INSERT into subscriptions(user_id, wallet_id, wallet_address) VALUES($1, $2, $3);`, userId, walletId, walletAddress)
-	if err != nil {
-		return fmt.Errorf("error inserting into join table: %w", err)
-	}
-	if err := tx.Commit(context.TODO()); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-	log.Printf("subscription created for: %d", userId)
-	return nil
-}
-
-func (ar *postgresAccountRepo) SetSubscription(walletAddress string, userId, walletId int) error {
 	query := `INSERT into subscriptions(user_id, wallet_id, wallet_address) VALUES ($1, $2, $3);`
 	_, err := ar.db.Exec(context.TODO(), query, userId, walletId, walletAddress)
 	if err != nil {
@@ -65,9 +54,10 @@ func (ar *postgresAccountRepo) SetSubscription(walletAddress string, userId, wal
 	return nil
 }
 
-// Removes the entry from subscription table
-// checks if other users are tracking respective wallet address
-// returns (true, nil) on success where true == wallet still being tracked by someone
+// `RemoveSubsciption` deletes a subscription for a given walletAddress and userId
+// Checks if other Users are tracking the wallet
+// Returns True if wallet is still tracked by other users, false otherwise
+// Transaction is used to ensure data consistency.
 func (ar *postgresAccountRepo) RemoveSubscription(walletAddress string, userId int) (bool, error) {
 	tx, err := ar.db.BeginTx(context.TODO(), pgx.TxOptions{})
 	if err != nil {
@@ -101,6 +91,8 @@ func (ar *postgresAccountRepo) RemoveSubscription(walletAddress string, userId i
 	return userCount > 0, nil
 }
 
+// `CreateWallet` adds a new wallet record with an active subscription status
+// Returns the ID of the newly created wallet.
 func (ar *postgresAccountRepo) CreateWallet(walletAddress string) (int, error) {
 	query := `INSERT into wallets(wallet_address, subscription_active) VALUES($1, TRUE) RETURNING id;`
 	var walletId int
