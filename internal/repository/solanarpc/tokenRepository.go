@@ -103,6 +103,8 @@ func (sr *solanaTokenRepo) GetTokenNameAndSymbol(ctx context.Context, tokenAddre
 		token_metadata.ProgramID.Bytes(),
 		mint.Bytes(),
 	}
+
+	/* Extraction */
 	mdAddr, _, err := solanago.FindProgramAddress(seeds, token_metadata.ProgramID)
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to find metadata address: %w", err)
@@ -111,9 +113,8 @@ func (sr *solanaTokenRepo) GetTokenNameAndSymbol(ctx context.Context, tokenAddre
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to find account info: %w", err)
 	}
-
+	/* Transformation */
 	data := acc.Value.Data.GetBinary()
-
 	var metadata token_metadata.Metadata
 	decoder := bin.NewBorshDecoder(data)
 	if err := metadata.UnmarshalWithDecoder(decoder); err != nil {
@@ -123,6 +124,7 @@ func (sr *solanaTokenRepo) GetTokenNameAndSymbol(ctx context.Context, tokenAddre
 	r, _ := regexp.Compile(`\x00+`) // remove null bytes
 	name := r.ReplaceAllString(metadata.Data.Name, "")
 	symbol := r.ReplaceAllString(metadata.Data.Symbol, "")
+
 	return []string{name, symbol}, nil
 }
 
@@ -148,5 +150,6 @@ func (sr *solanaTokenRepo) GetTokenAge(ctx context.Context, tokenAddress string)
 		return time.Time{}, fmt.Errorf("unable to find account info: %w", err)
 	}
 	time := sig[len(sig)-1].BlockTime.Time().UTC()
+
 	return time, nil
 }
