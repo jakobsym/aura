@@ -103,8 +103,8 @@ func (ar *postgresAccountRepo) CreateWallet(walletAddress string) (int, error) {
 	return walletId, nil
 }
 
-// Using Upsert
-// if not found then create
+// `GetWalletID` fetches a walletId based on a given walletAddress
+// if no walletId found, one is created
 func (ar *postgresAccountRepo) GetWalletID(walletAddress string) (int, error) {
 	tx, err := ar.db.BeginTx(context.TODO(), pgx.TxOptions{})
 	defer tx.Rollback(context.TODO())
@@ -130,6 +130,7 @@ func (ar *postgresAccountRepo) GetWalletID(walletAddress string) (int, error) {
 	return walletId, nil
 }
 
+// `SetWalletActive` updates a wallet's subscription status to active
 func (ar *postgresAccountRepo) SetWalletActive(walletId int) error {
 	query := `UPDATE wallets SET subscription_active = TRUE WHERE id = $1;`
 	_, err := ar.db.Exec(context.TODO(), query, walletId)
@@ -139,15 +140,17 @@ func (ar *postgresAccountRepo) SetWalletActive(walletId int) error {
 	return nil
 }
 
-func (ar *postgresAccountRepo) CreateUser(userId int) error {
+// `CreateUser` creates a new user record based on given telegramId
+func (ar *postgresAccountRepo) CreateUser(telegram_id int) error {
 	query := `INSERT into users(telegram_id) VALUES($1);`
-	_, err := ar.db.Exec(context.TODO(), query, userId)
+	_, err := ar.db.Exec(context.TODO(), query, telegram_id)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+// `GetUserID` fetches a user based on given telegramId
 func (ar *postgresAccountRepo) GetUserID(telegramId int) (int, error) {
 	query := `SELECT id FROM users WHERE telegram_id = $1`
 	var userId int

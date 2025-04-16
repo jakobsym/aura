@@ -1,3 +1,5 @@
+// Package `solana` provides implementations of repository interfaces using Solana RPC methods,
+// and external API calls
 package solana
 
 import (
@@ -17,19 +19,25 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+// `solanaTokenRepo` implements the solanarpc.SolanaTokenRepo interface using a solanarpc.Client
 type solanaTokenRepo struct {
 	rpcClient *solanarpc.Client
 }
 
+// `NewSolanaTokenRepo` creates and returns a new solanarpc.Client implementation
+// of the SolanaTokenRepo interface.
 func NewSolanaTokenRepo(c *solanarpc.Client) repository.SolanaTokenRepo {
 	return &solanaTokenRepo{rpcClient: c}
 }
 
+// `SolanaRpcConnection` creates a new connection to Solana mainnet
+// using the created solanarpc.Client
 func SolanaRpcConnection() *solanarpc.Client {
 	return solanarpc.New("https://api.mainnet-beta.solana.com")
 }
 
-// TODO: Make such that denominating asset included in req?
+// `GetTokenPrice` retrieves current price of a token in USD from the jupiter API
+// TODO: Make such that denominating asset included in req body
 // Currently only USD
 func (sr *solanaTokenRepo) GetTokenPrice(ctx context.Context, tokenAddress string) (float64, error) {
 	client := &http.Client{}
@@ -61,6 +69,8 @@ func (sr *solanaTokenRepo) GetTokenPrice(ctx context.Context, tokenAddress strin
 	return price.Float(), nil
 }
 
+// `GetTokenSupply` retrieves current ciculating supply for a given Solana tokenAddress
+// returns supply as float64 for easier calculations
 func (sr *solanaTokenRepo) GetTokenSupply(ctx context.Context, tokenAddress string) (float64, error) {
 	mint := solanago.MustPublicKeyFromBase58(tokenAddress)
 	out, err := sr.rpcClient.GetTokenSupply(ctx, mint, solanarpc.CommitmentFinalized)
@@ -75,13 +85,19 @@ func (sr *solanaTokenRepo) GetTokenSupply(ctx context.Context, tokenAddress stri
 	return supplyInt, nil
 }
 
+// `GetTokenFDV` calculates the fully dilued valuation of a given token
 func (sr *solanaTokenRepo) GetTokenFDV(ctx context.Context, price float64, supply float64) float64 {
 	return (price * supply)
 }
 
+// `GetTokenNameAndSymbol` retrieves the name and symbol for a Solana token
+// by fetching and decoding its metadata account
+// returns a string slice [name, symbol]
 func (sr *solanaTokenRepo) GetTokenNameAndSymbol(ctx context.Context, tokenAddress string) ([]string, error) {
 	mint := solanago.MustPublicKeyFromBase58(tokenAddress)
 
+	// find where metadata is stored
+	// using token mint, and token programID
 	seeds := [][]byte{
 		[]byte("metadata"),
 		token_metadata.ProgramID.Bytes(),
@@ -95,6 +111,7 @@ func (sr *solanaTokenRepo) GetTokenNameAndSymbol(ctx context.Context, tokenAddre
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to find account info: %w", err)
 	}
+
 	data := acc.Value.Data.GetBinary()
 
 	var metadata token_metadata.Metadata
@@ -103,15 +120,20 @@ func (sr *solanaTokenRepo) GetTokenNameAndSymbol(ctx context.Context, tokenAddre
 		return []string{}, fmt.Errorf("unable to deserialize data: %w", err)
 	}
 
-	r, _ := regexp.Compile(`\x00+`)
+	r, _ := regexp.Compile(`\x00+`) // remove null bytes
 	name := r.ReplaceAllString(metadata.Data.Name, "")
 	symbol := r.ReplaceAllString(metadata.Data.Symbol, "")
 	return []string{name, symbol}, nil
 }
 
+// `GetTokenAge` determines when a token is created by finding its earliest transaction
+// involving the metadata account
+// returns creation time as UTC timestamp.
 func (sr *solanaTokenRepo) GetTokenAge(ctx context.Context, tokenAddress string) (time.Time, error) {
 	mint := solanago.MustPublicKeyFromBase58(tokenAddress)
 
+	// find where metadata is stored
+	// using token mint, and token programID
 	seeds := [][]byte{
 		[]byte("metadata"),
 		token_metadata.ProgramID.Bytes(),
