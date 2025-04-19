@@ -61,7 +61,6 @@ flowchart TD
 - 🖥️ Telegram interface for mobile or desktop based access
 
 ## Requirements
-- `Docker`
 - `Go: 1.23.X +`
 - [Helius API key](https://dashboard.helius.dev/)
 
@@ -75,7 +74,7 @@ $ make
 $ ./bin/aura
 ```
 
-## Usage Example
+## Usage Example(s)
 - Locally you can access specific endpoints of the internal API
     
 
@@ -97,9 +96,9 @@ $ curl -X GET localhost:3000/v0/token/<token_address>
 Response:
 ```
 {
-  "token_address": "6yjNqPzTSanBWSa6dxVEgTjePXBrZ2FoHLDQwYwEsyM6",
-  "name": "Chudjak",
-  "symbol": "Chud",
+  "token_address": <token_address>,
+  "name": "Solana",
+  "symbol": "SOL",
   "created_at": "2024-05-05T06:18:01Z",
   "supply": 926910034.835728,
   "price": 0.00147629,

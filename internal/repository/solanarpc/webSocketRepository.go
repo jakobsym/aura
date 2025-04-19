@@ -1,3 +1,5 @@
+// Package `solana` provides implementations of repository interfaces using Solana RPC methods,
+// and external API calls
 package solana
 
 import (
@@ -23,6 +25,8 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 )
 
+// `solanaWebSocketRepo` implements SolanaWebSocketRepo interface
+// for interacting with real-time data via Helius RPC websockets
 type solanaWebSocketRepo struct {
 	Websocket *websocket.Conn
 	mu        sync.Mutex
@@ -31,6 +35,7 @@ type solanaWebSocketRepo struct {
 	//Accounts  []string
 }
 
+// websocket connection logic constants
 const (
 	pongWait   = 45 * time.Second
 	pingPeriod = 30 * time.Second
@@ -38,10 +43,14 @@ const (
 	writeWait  = 10 * time.Second
 )
 
+// `NewSolanaWebSocketRepo` creates a new Solana websocket repository intstance
 func NewSolanaWebSocketRepo(ws *websocket.Conn) repository.SolanaWebSocketRepo {
 	return &solanaWebSocketRepo{Websocket: ws, mu: sync.Mutex{}}
 }
 
+// `SolanaWebSocketConnection` establishes a websocket connection to a Helius RPC endpoint
+// Configures a pong handler to establish ping/pong connection between websocket and local server.
+// returns the connection
 func SolanaWebSocketConnection() *websocket.Conn {
 	url := fmt.Sprintf("wss://mainnet.helius-rpc.com/?api-key=%s", os.Getenv("HELIUS_API_KEY"))
 	ws, _, err := websocket.DefaultDialer.Dial(url, nil)
@@ -56,6 +65,8 @@ func SolanaWebSocketConnection() *websocket.Conn {
 	return ws
 }
 
+// `HandleWebSocketConnection` manages websocket connection by implementing
+// a ping/pong mechanism to keep the connection alive
 func (sr *solanaWebSocketRepo) HandleWebSocketConnection(ctx context.Context) {
 	pingTicker := time.NewTicker(pingPeriod)
 	defer pingTicker.Stop()
@@ -85,11 +96,12 @@ func (sr *solanaWebSocketRepo) HandleWebSocketConnection(ctx context.Context) {
 	}()
 }
 
+// `StartReader` continuously reads messages from the websocket
+// processing and dispatching them to the appropriate handlers.
+// Handles subscription responses, log notifications, and
+// extracts txn data when available.
 func (sr *solanaWebSocketRepo) StartReader(ctx context.Context) {
 	go func() {
-		// initial read deadline and pong handler
-		//sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
-
 		sr.Websocket.SetPongHandler(func(string) error {
 			log.Println("Received pong from server")
 			sr.Websocket.SetReadDeadline(time.Now().Add(pongWait))
@@ -104,8 +116,6 @@ func (sr *solanaWebSocketRepo) StartReader(ctx context.Context) {
 				return
 			}
 
-			//sr.Websocket.SetReadDeadline(time.Now().Add(readWait))
-
 			// try accountSubscribe() response
 			var accountSubscribeRes domain.HeliusSubscriptionResponse
 			if err := json.Unmarshal(rawRes, &accountSubscribeRes); err == nil && accountSubscribeRes.ID != 0 {
@@ -116,7 +126,7 @@ func (sr *solanaWebSocketRepo) StartReader(ctx context.Context) {
 				continue
 			}
 
-			//			log.Printf("Unhandled message type: %s", string(rawRes))
+			// try logResponse
 			var logResponse domain.HeliusLogResponse
 			if err := json.Unmarshal([]byte(rawRes), &logResponse); err != nil && logResponse.Method == "logsNotification" {
 				sr.mu.Lock()
@@ -130,7 +140,7 @@ func (sr *solanaWebSocketRepo) StartReader(ctx context.Context) {
 				sr.mu.Unlock()
 				continue
 			}
-
+			// process txn data
 			txnSignature := logResponse.Params.Result.Value.Signature
 			payload, err := sr.GetTxnData(txnSignature)
 			if err != nil {
@@ -142,12 +152,12 @@ func (sr *solanaWebSocketRepo) StartReader(ctx context.Context) {
 				log.Printf("Error getting txn swap data from payload: %v", err)
 			}
 			log.Println(swapData)
-
 		}
-
 	}()
 }
 
+// `LogsSubscribe` subscribes to logs for a specific wallet address
+// sends a subscription request and awaits for confirmation.
 func (sr *solanaWebSocketRepo) LogsSubscribe(ctx context.Context, walletAddress string, userId int) error {
 	sr.mu.Lock()
 	defer sr.mu.Unlock()
@@ -164,13 +174,17 @@ func (sr *solanaWebSocketRepo) LogsSubscribe(ctx context.Context, walletAddress 
 			},
 		},
 	}
-
+	// create channel for response and store in pending map
 	responseCh := make(chan domain.HeliusSubscriptionResponse, 1)
 	sr.pending.Store(msg.ID, responseCh)
 	defer sr.pending.Delete(msg.ID)
+
+	// send sub request
 	if err := sr.Websocket.WriteJSON(msg); err != nil {
 		return fmt.Errorf("failed to send logsSubscription request: %w", err)
 	}
+
+	// await for response w/ timeout
 	select {
 	case res := <-responseCh:
 		if res.Error != nil {
@@ -178,14 +192,17 @@ func (sr *solanaWebSocketRepo) LogsSubscribe(ctx context.Context, walletAddress 
 		}
 		log.Printf("Subscribed to %s | ID: %d\n", walletAddress, res.Result)
 		return nil
+
 	case <-time.After(30 * time.Second):
 		return fmt.Errorf("subscription timeout")
+
 	case <-ctx.Done():
 		return fmt.Errorf("context cancelled while awaiting subscription response")
 	}
-
 }
 
+// `GetTxnData` retrieves detailed txn data for a given txn signature
+// by making an RPC call to Helius RPC
 func (sr *solanaWebSocketRepo) GetTxnData(signature string) (domain.TransactionResult, error) {
 	msg := domain.HeliusRequest{
 		JsonRPC: "2.0",
@@ -199,6 +216,8 @@ func (sr *solanaWebSocketRepo) GetTxnData(signature string) (domain.TransactionR
 			},
 		},
 	}
+
+	// send request
 	reqMsg, err := json.Marshal(msg)
 	if err != nil {
 		return domain.TransactionResult{}, err
@@ -210,12 +229,14 @@ func (sr *solanaWebSocketRepo) GetTxnData(signature string) (domain.TransactionR
 	}
 	req.Header.Set("Content-Type", "application/json")
 
+	// process data
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
 		return domain.TransactionResult{}, err
 	}
 	defer res.Body.Close()
+
 	var payload domain.TransactionResult
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
@@ -228,6 +249,9 @@ func (sr *solanaWebSocketRepo) GetTxnData(signature string) (domain.TransactionR
 	return payload, nil
 }
 
+// `GetTxnSwapData` analyzes txn data to identify token swaps
+// extracting details regarding sent/recieved tokens to determine
+// balance changes for a tracked wallet.
 func (sr *solanaWebSocketRepo) GetTxnSwapData(payload domain.TransactionResult) ([]domain.SwapResult, error) {
 	userWalletAddress := payload.Result.Transaction.Message.AccountKeys[0]
 	balanceMap := make(map[int]map[string]domain.TokenBalance)
@@ -253,8 +277,10 @@ func (sr *solanaWebSocketRepo) GetTxnSwapData(payload domain.TransactionResult) 
 			continue
 		}
 
+		// calculate token amount changes
 		delta := post.UITokenAmount.UIAmount - pre.UITokenAmount.UIAmount
 		if delta < 0 {
+			// token was sent
 			sent = append(sent, domain.TokenBalance{
 				Mint: post.Mint,
 				UITokenAmount: domain.UITokenAmount{
@@ -262,6 +288,7 @@ func (sr *solanaWebSocketRepo) GetTxnSwapData(payload domain.TransactionResult) 
 				},
 			})
 		} else if delta > 0 {
+			// token was received
 			received = append(received, domain.TokenBalance{
 				Mint: post.Mint,
 				UITokenAmount: domain.UITokenAmount{
@@ -271,9 +298,9 @@ func (sr *solanaWebSocketRepo) GetTxnSwapData(payload domain.TransactionResult) 
 		}
 	}
 
-	// Pair sent and received tokens
+	// pair sent and received tokens to identify swaps
 	for i := 0; i < len(sent) && i < len(received); i++ {
-
+		// get metadata for sent/received tokens
 		sentTokenDetail, err := sr.GetTokenNameAndSymbol(context.TODO(), sent[i].Mint)
 		if err != nil {
 			return []domain.SwapResult{}, err
@@ -295,14 +322,21 @@ func (sr *solanaWebSocketRepo) GetTxnSwapData(payload domain.TransactionResult) 
 	return swaps, nil
 }
 
+// `GetTokenNameAndSymbol` retrieves the name and symbol for a Solana token
+// by fetching and decoding its metadata account
+// returns a string slice [name, symbol]
 func (sr *solanaWebSocketRepo) GetTokenNameAndSymbol(ctx context.Context, tokenAddress string) ([]string, error) {
 	mint := solanago.MustPublicKeyFromBase58(tokenAddress)
 	rpcClient := solanarpc.New("https://api.mainnet-beta.solana.com")
+
+	// find where metadata is stored
+	// using token mint, and token programID
 	seeds := [][]byte{
 		[]byte("metadata"),
 		token_metadata.ProgramID.Bytes(),
 		mint.Bytes(),
 	}
+	/* Extraction */
 	mdAddr, _, err := solanago.FindProgramAddress(seeds, token_metadata.ProgramID)
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to find metadata address: %w", err)
@@ -311,8 +345,9 @@ func (sr *solanaWebSocketRepo) GetTokenNameAndSymbol(ctx context.Context, tokenA
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to find account info: %w", err)
 	}
-	data := acc.Value.Data.GetBinary()
 
+	/* Transformation */
+	data := acc.Value.Data.GetBinary()
 	var metadata token_metadata.Metadata
 	decoder := bin.NewBorshDecoder(data)
 	if err := metadata.UnmarshalWithDecoder(decoder); err != nil {
@@ -322,9 +357,12 @@ func (sr *solanaWebSocketRepo) GetTokenNameAndSymbol(ctx context.Context, tokenA
 	r, _ := regexp.Compile(`\x00+`)
 	name := r.ReplaceAllString(metadata.Data.Name, "")
 	symbol := r.ReplaceAllString(metadata.Data.Symbol, "")
+
 	return []string{name, symbol}, nil
 }
 
+// `AccountListen` creates a channel for recieving account notifications
+// returns a read only channel that receives a HeliusLogResponse
 func (sr *solanaWebSocketRepo) AccountListen(ctx context.Context) (<-chan domain.HeliusLogResponse, error) {
 	updates := make(chan domain.HeliusLogResponse, 10)
 	sr.mu.Lock()
@@ -333,6 +371,8 @@ func (sr *solanaWebSocketRepo) AccountListen(ctx context.Context) (<-chan domain
 	return updates, nil
 }
 
+// `StopAccountListen` unsubscribes from account notifications
+// by removing specified channel from subscription list and closing it
 func (sr *solanaWebSocketRepo) StopAccountListen(ch <-chan domain.HeliusLogResponse) {
 	sr.mu.Lock()
 	defer sr.mu.Unlock()

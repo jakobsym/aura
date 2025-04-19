@@ -94,9 +94,10 @@ func (sr *solanaTokenRepo) GetTokenFDV(ctx context.Context, price float64, suppl
 // by fetching and decoding its metadata account
 // returns a string slice [name, symbol]
 func (sr *solanaTokenRepo) GetTokenNameAndSymbol(ctx context.Context, tokenAddress string) ([]string, error) {
+	// Convert tokenAddress to a Solana PublicKey
 	mint := solanago.MustPublicKeyFromBase58(tokenAddress)
 
-	// find where metadata is stored
+	// Find where metadata is stored
 	// using token mint, and token programID
 	seeds := [][]byte{
 		[]byte("metadata"),
@@ -105,27 +106,40 @@ func (sr *solanaTokenRepo) GetTokenNameAndSymbol(ctx context.Context, tokenAddre
 	}
 
 	/* Extraction */
+	// Find program derived address based on seeds, and ProgramID
 	mdAddr, _, err := solanago.FindProgramAddress(seeds, token_metadata.ProgramID)
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to find metadata address: %w", err)
 	}
+	// Get account info using derived mdAddr
 	acc, err := sr.rpcClient.GetAccountInfo(context.Background(), mdAddr)
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to find account info: %w", err)
 	}
+	// acc = &{{{333854140}} 0xc0000ac600}
+
 	/* Transformation */
-	data := acc.Value.Data.GetBinary()
+	data := acc.Value.Data.GetBinary() // get binary representation
+	// data = [4 6 197 193 206 99 141 37 103 210 100 104 176 94 185 81 209 162 141 204 110 18...]
+
 	var metadata token_metadata.Metadata
+	// Deserialize binary data, loading into metadata variable
 	decoder := bin.NewBorshDecoder(data)
 	if err := metadata.UnmarshalWithDecoder(decoder); err != nil {
 		return []string{}, fmt.Errorf("unable to deserialize data: %w", err)
 	}
+	// metadata = {
+	//	MetadataV1 TSLvdd1pWpHVjahSpsvCXUbgwsL3JAcvokwaKt1eokM 6yjNqPzTSanBWSa6dxVEgTjePXBrZ2FoHLDQwYwEsyM6
+	//	{Solana SOL https://cf-ipfs.com/ipfs/QmTXTMc25MJk6h7JmDQpXEFUF8aMgTzovM7915x6fyJu1m 0 <nil>}
+	// 	false false 0xc000013d40 Fungible <nil> <nil>
+	//	}
 
 	r, _ := regexp.Compile(`\x00+`) // remove null bytes
 	name := r.ReplaceAllString(metadata.Data.Name, "")
 	symbol := r.ReplaceAllString(metadata.Data.Symbol, "")
 
 	return []string{name, symbol}, nil
+	// ["Solana", "SOL"]
 }
 
 // `GetTokenAge` determines when a token is created by finding its earliest transaction
