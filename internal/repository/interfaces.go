@@ -8,7 +8,12 @@ import (
 	"github.com/jakobsym/aura/internal/domain"
 )
 
-type TokenRepo interface{}
+type PostgresTokenRepo interface {
+	// `DeleteToken` deletes a token entry from DB based on given tokenAddress
+	DeleteToken(tokenAddress string) error
+	// `CreateToken` creates token entry within DB after transforming token data
+	CreateToken(token domain.TokenResponse) error
+}
 
 // `SolanaTokenRepo` defines operations for extracting token related data via RPC nodes.
 type SolanaTokenRepo interface {

@@ -27,8 +27,8 @@ func main() {
 	accountHandler := handler.NewAccountHandler(solanaAccountService)
 
 	solanaTokenRepo := solana.NewSolanaTokenRepo(rpcConnection)
-	tokenPsqlRepo := postgres.NewPostgresTokenRepo(db)
-	tokenService := service.NewTokenService(tokenPsqlRepo, solanaTokenRepo)
+	psqlTokenRepo := postgres.NewPostgresTokenRepo(db)
+	tokenService := service.NewTokenService(psqlTokenRepo, solanaTokenRepo)
 	tokenHandler := handler.NewTokenHandler(tokenService)
 
 	router := routes.NewRouter(tokenHandler, accountHandler)

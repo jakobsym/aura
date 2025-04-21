@@ -1,7 +1,9 @@
+// Package `domain` contains structs and types used throughout application
 package domain
 
 import "time"
 
+// `Token` represents basic token information with optional JSON fields
 type Token struct {
 	TokenAddress string  `json:"token_address"`
 	Name         string  `json:"name,omitempty"`
@@ -10,6 +12,8 @@ type Token struct {
 	Socials      string  `json:"socials,omitempty"`
 }
 
+// `TokenResponse` represents transformed token data for API responses
+// as well as DB token entries
 type TokenResponse struct {
 	Address   string    `json:"token_address"`
 	Name      string    `json:"name"`
@@ -19,7 +23,4 @@ type TokenResponse struct {
 	Price     float64   `json:"price"`
 	FDV       float64   `json:"fdv"`
 	Socials   string    `json:"socials,omitempty"`
-	//Metadata  *TokenMetadata `json:"metadata,omitempty"`
 }
-
-type TransactionResponse struct{}

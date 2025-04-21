@@ -1,5 +1,7 @@
+// Package `domain` contains structs and types used throughout application
 package domain
 
+// Represents standard JSON-RPC request format for Helius API calls
 type HeliusRequest struct {
 	JsonRPC string `json:"jsonrpc"`
 	ID      int    `json:"id"`
@@ -7,14 +9,17 @@ type HeliusRequest struct {
 	Params  any    `json:"params"`
 }
 
+// Parameters for subscribing to account log event(s)
 type LogsSubscribeParams struct {
 	Mentions []string `json:"mentions"`
 }
 
+// Specifies blockchain commitment level for queries
 type CommitmentConfig struct {
 	Commitment string `json:"commitment"`
 }
 
+// Represents response for subscription request(s)
 type HeliusSubscriptionResponse struct {
 	JsonRPC string `json:"jsonrpc"`
 	Result  int    `json:"result"`
@@ -25,6 +30,7 @@ type HeliusSubscriptionResponse struct {
 	} `json:"error,omitempty"`
 }
 
+// Real time log data for subscribed accounts
 type HeliusLogResponse struct {
 	JsonRPC string `json:"jsonrpc"`
 	Method  string `json:"method"`
@@ -39,10 +45,12 @@ type HeliusLogResponse struct {
 	} `json:"params"`
 }
 
+// Represents a User via TelegramId
 type User struct {
 	TelegramId int `json:"user_id"`
 }
 
+// Contains parsed transaction data w/ token balance changes
 type TransactionResult struct {
 	Result struct {
 		Meta struct {
@@ -57,10 +65,12 @@ type TransactionResult struct {
 	} `json:"result"`
 }
 
+// Represents token balance in float64 format
 type UITokenAmount struct {
 	UIAmount float64 `json:"uiAmount"`
 }
 
+// Contains token ownership information
 type TokenBalance struct {
 	AccountIndex  int           `json:"accountIndex"`
 	Mint          string        `json:"mint"`
@@ -68,6 +78,7 @@ type TokenBalance struct {
 	UITokenAmount UITokenAmount `json:"uiTokenAmount"`
 }
 
+// Represents outcome of a token swap operation
 type SwapResult struct {
 	SentAmount      float64 `json:"sentAmount"`
 	SentSymbol      string  `json:"sentSymbol"`

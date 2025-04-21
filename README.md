@@ -3,57 +3,70 @@ Aura is a Solana based onchain data retrieval tool that provides traders with re
 
 Onchain data is extracted via mainnet RPC node calls, decoding Metaplex PDA data, as well as more optimized RPC calls using Helius.
 
-## Aura Architecture
+## High Level Architecture
 ```mermaid
 flowchart TD
     subgraph UI[Frontend]
         WEB[Telegram Interface]
     end
-
-    subgraph Backend[Backend Service]
-        subgraph ETL[Pseudo Pipeline]
-            EXTRACT[Extract] --> TRANSFORM[Transform]
-            TRANSFORM --> |Load to DB| LOAD_DB[Load]
-            TRANSFORM --> |Load to HTTP Server| LOAD_HTTP[Load]
+    
+    subgraph GCP[GCP Compute Engine VM]
+        subgraph Backend[Backend Service]
+            subgraph DataProcessing[Data Processing]
+                COLLECT[Data Collection] --> PROCESS[Data Processing]
+                PROCESS --> |Persist Token/User Data| STORE_DB[Load into DB]
+                PROCESS --> |Real-time Wallet Updates| SERVE[Load into API]
+            end
+            
+            subgraph HTTP_SERVER[HTTP Server]
+                API[REST Endpoints]
+            end
         end
         
-        subgraph HTTP_SERVER[HTTP Server]
-            API[REST Endpoints]
+        subgraph Docker[Docker Container]
+            subgraph Database[Database]
+                DB[(Postgres)]
+            end
         end
     end
-
-    subgraph Database[Database]
-        DB[(Postgres)]
-    end
-
+    
     subgraph Blockchain[Solana Network]
         RPC[RPC Node]
         BC_WS[WebSocket Connection]
     end
-
+    
     %% Data Flows
     WEB <--> |HTTP Requests/Responses| API
-    API <--> |Query Data| DB
+    API <--> |Query/Store Data| DB
     
-    EXTRACT --> RPC
-    EXTRACT --> |Real-time Stream| BC_WS
-    LOAD_DB --> |Persist Data| DB
-    LOAD_HTTP --> |Real-time Updates| API
-
+    COLLECT --> |Request Based| RPC
+    COLLECT --> |Subscription Based Real-time Stream| BC_WS
+    STORE_DB --> |Persist Token/User Data| DB
+    SERVE --> |Real-time Wallet Updates| API
+    
     %% Styling
-    classDef frontend fill:#7CB9E8,stroke:#4682B4,stroke-width:2px,color:white
-    classDef backend fill:#98FB98,stroke:#3CB371,stroke-width:2px,color:#333
-    classDef blockchain fill:#FFB6C1,stroke:#DB7093,stroke-width:2px,color:#333
-    classDef database fill:#FFA07A,stroke:#FF8C00,stroke-width:1px,color:#333
-    classDef etl fill:#DDA0DD,stroke:#9400D3,stroke-width:2px,color:#333
-    classDef server fill:#B0C4DE,stroke:#4169E1,stroke-width:4px,color:#333
-
+    classDef frontend fill:#E8EAED,stroke:#BDC1C6,stroke-width:1px,color:#202124
+    classDef backend fill:#DAE8FC,stroke:#6C8EBF,stroke-width:1px,color:#333
+    classDef blockchain fill:#F5F5F5,stroke:#CCCCCC,stroke-width:1px,color:#333
+    classDef database fill:#E1D5E7,stroke:#9673A6,stroke-width:1px,color:#333
+    classDef dataProcessingService fill:#f8d894,stroke:#D6B656,stroke-width:1px,color:#333
+    classDef processSteps fill:#F8CECC,stroke:#B85450,stroke-width:1px,color:#333
+    classDef server fill:#D5E8D4,stroke:#82B366,stroke-width:1px,color:#333
+    classDef gcp fill:#F9F9F9,stroke:#999999,stroke-width:1px,color:#333
+    classDef docker fill:#F0F8FF,stroke:#1D70B8,stroke-width:1px,color:#333
+    
     class WEB frontend
-    class API backend
+    class API,Backend backend
     class HTTP_SERVER server
-    class EXTRACT,TRANSFORM,LOAD_DB,LOAD_HTTP etl
+    class DataProcessing dataProcessingService
+    class COLLECT,PROCESS,STORE_DB,SERVE processSteps
     class RPC,BC_WS blockchain
     class DB database
+    class GCP gcp
+    class Docker docker
+    
+    %% Make arrow lines darker
+    linkStyle default stroke:#555555,stroke-width:1.5px
 ```
 ## Features
 - 🔎 Real-time wallet monitoring
