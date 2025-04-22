@@ -77,12 +77,26 @@ flowchart TD
 
 ## Quick Start (Locally)
 - Below are instructions to set up a local copy of the Go backend server. You’ll need to configure a data store (e.g., PostgreSQL, Redis, or an in-memory solution). 
-
-- The project uses a *Repository Pattern*, so the data store implementation can be swapped without modifying core logic—just replace the repository layer with your preferred storage solution.
 ```
 $ git clone https://github.com/jakobsym/aura.git
 $ make
 $ ./bin/aura
+```
+## Request Flow
+- The project uses a *Repository Pattern*, so the data store implementation can be swapped without modifying core logic, just replace the repository layer with your preferred storage solution.
+- Below is a visual of this patterns flow in action, and displays how requests are processed.
+
+``` mermaid
+flowchart LR
+    Request[Request] --> Handler[Handler]
+    Handler --> Service[Service]
+    Service --> Repository[Repository]
+    Repository --> Database[(Data Source)]
+    Database --> Repository
+    Repository --> Service
+    Service --> Handler
+    Handler --> Response[Response]
+
 ```
 
 ## Usage Example(s)
