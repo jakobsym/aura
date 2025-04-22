@@ -3,7 +3,7 @@ Aura is a Solana based onchain data retrieval tool that provides traders with re
 
 Onchain data is extracted via mainnet RPC node calls, decoding Metaplex PDA data, as well as more optimized RPC calls using Helius.
 
-## High Level Architecture
+## High Level Architecture Diagram
 ```mermaid
 flowchart TD
     subgraph UI[Frontend]
@@ -11,16 +11,13 @@ flowchart TD
     end
     
     subgraph GCP[GCP Compute Engine VM]
-        subgraph Backend[Backend Service]
+        subgraph Backend[Backend / HTTP Server]
             subgraph DataProcessing[Data Processing]
                 COLLECT[Data Collection] --> PROCESS[Data Processing]
                 PROCESS --> |Persist Token/User Data| STORE_DB[Load into DB]
                 PROCESS --> |Real-time Wallet Updates| SERVE[Load into API]
             end
-            
-            subgraph HTTP_SERVER[HTTP Server]
-                API[REST Endpoints]
-            end
+            API[REST Endpoints]
         end
         
         subgraph Docker[Docker Container]
@@ -38,7 +35,6 @@ flowchart TD
     %% Data Flows
     WEB <--> |HTTP Requests/Responses| API
     API <--> |Query/Store Data| DB
-    
     COLLECT --> |Request Based| RPC
     COLLECT --> |Subscription Based Real-time Stream| BC_WS
     STORE_DB --> |Persist Token/User Data| DB
@@ -49,14 +45,16 @@ flowchart TD
     classDef backend fill:#DAE8FC,stroke:#6C8EBF,stroke-width:1px,color:#333
     classDef blockchain fill:#F5F5F5,stroke:#CCCCCC,stroke-width:1px,color:#333
     classDef database fill:#E1D5E7,stroke:#9673A6,stroke-width:1px,color:#333
-    classDef dataProcessingService fill:#f8d894,stroke:#D6B656,stroke-width:1px,color:#333
+    classDef dataProcessingService fill:#b4fbd6,stroke:#403d44,stroke-width:1px,color:#333
     classDef processSteps fill:#F8CECC,stroke:#B85450,stroke-width:1px,color:#333
     classDef server fill:#D5E8D4,stroke:#82B366,stroke-width:1px,color:#333
     classDef gcp fill:#F9F9F9,stroke:#999999,stroke-width:1px,color:#333
     classDef docker fill:#F0F8FF,stroke:#1D70B8,stroke-width:1px,color:#333
+    classDef restEndpoints fill:#91c5f2,stroke:#403d44,stroke-width:2px,color:#333
     
     class WEB frontend
-    class API,Backend backend
+    class Backend backend
+    class API restEndpoints
     class HTTP_SERVER server
     class DataProcessing dataProcessingService
     class COLLECT,PROCESS,STORE_DB,SERVE processSteps
@@ -65,8 +63,8 @@ flowchart TD
     class GCP gcp
     class Docker docker
     
-    %% Make arrow lines darker
-    linkStyle default stroke:#555555,stroke-width:1.5px
+    %% Make arrow lines more visible for dark mode
+    linkStyle default stroke:#FF9F1C,stroke-width:2px
 ```
 ## Features
 - 🔎 Real-time wallet monitoring
