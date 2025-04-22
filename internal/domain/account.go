@@ -54,12 +54,12 @@ type User struct {
 type TransactionResult struct {
 	Result struct {
 		Meta struct {
-			PreTokenBalances  []TokenBalance `json:"preTokenBalances"`
-			PostTokenBalances []TokenBalance `json:"postTokenBalances"`
+			PreTokenBalances  []TokenBalance `json:"pre_token_balances"`
+			PostTokenBalances []TokenBalance `json:"post_token_balances"`
 		} `json:"meta"`
 		Transaction struct {
 			Message struct {
-				AccountKeys []string `json:"accountKeys"`
+				AccountKeys []string `json:"account_keys"`
 			} `json:"message"`
 		} `json:"transaction"`
 	} `json:"result"`
@@ -72,20 +72,20 @@ type UITokenAmount struct {
 
 // Contains token ownership information
 type TokenBalance struct {
-	AccountIndex  int           `json:"accountIndex"`
+	AccountIndex  int           `json:"account_index"`
 	Mint          string        `json:"mint"`
 	Owner         string        `json:"owner"`
-	UITokenAmount UITokenAmount `json:"uiTokenAmount"`
+	UITokenAmount UITokenAmount `json:"ui_token_amount"`
 }
 
 // Represents outcome of a token swap operation
 type SwapResult struct {
-	SentAmount      float64 `json:"sentAmount"`
-	SentSymbol      string  `json:"sentSymbol"`
-	SentAddress     string  `json:"sentAddress"`
-	ReceivedAddress string  `json:"receivedAddress"`
-	ReceivedAmount  float64 `json:"receivedAmount"`
-	ReceivedSymbol  string  `json:"receivedSymbol"`
+	SentAmount      float64 `json:"sent_amount"`
+	SentSymbol      string  `json:"sen_symbol"`
+	SentAddress     string  `json:"sent_address"`
+	ReceivedAddress string  `json:"received_address"`
+	ReceivedAmount  float64 `json:"received_amount"`
+	ReceivedSymbol  string  `json:"received_symbol"`
 }
 
 /*
