@@ -1,0 +1,30 @@
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    telegram_id INTEGER NOT NULL UNIQUE,
+    username TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS wallets (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    wallet_address TEXT NOT NULL UNIQUE,
+    subscription_active BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    wallet_id INTEGER REFERENCES wallets(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, wallet_id)
+);
+
+CREATE TABLE IF NOT EXISTS tokens (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    token_address TEXT NOT NULL UNIQUE,
+    token_name NOT NULL TEXT,
+    token_symbol NOT NULL TEXT,
+    token_supply NOT NULL DECIMAL,
+    created_at TIMESTAMP,
+    token_social TEXT
+);

@@ -49,6 +49,7 @@ func PostgresConnectionPool() *pgxpool.Pool {
 	return dbpool
 }
 
+// `DeleteToken` deletes a token record based on given tokenAddress
 func (tr *postgresTokenRepo) DeleteToken(tokenAddress string) error {
 	query := `DELETE FROM tokens WHERE token_address = $1`
 	result, err := tr.db.Exec(context.TODO(), query, tokenAddress)
@@ -65,6 +66,7 @@ func (tr *postgresTokenRepo) DeleteToken(tokenAddress string) error {
 	return nil
 }
 
+// `CreateToken` creates a token record based on given domain.TokenResponse
 func (tr *postgresTokenRepo) CreateToken(token domain.TokenResponse) error {
 	query := `INSERT INTO tokens(
 		token_address,
